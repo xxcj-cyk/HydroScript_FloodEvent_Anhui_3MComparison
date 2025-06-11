@@ -1,6 +1,5 @@
 .env
 .vscode/
 
-*.csv
 *ipynb
 **/__pycache__/
