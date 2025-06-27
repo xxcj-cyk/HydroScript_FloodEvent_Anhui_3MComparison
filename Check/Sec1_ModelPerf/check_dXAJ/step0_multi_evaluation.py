@@ -33,7 +33,7 @@ base_project_name = [
     "anhui_70112150_10",
     "anhui_70114100_35",
 ]
-model_name = "Anhui_EnLoss-dPL"
+model_name = "Anhui_dPL"
 csv_path = [
     "./Data/All/anhui_50406910_28.csv",
     "./Data/All/anhui_50501200_36.csv",
@@ -70,8 +70,8 @@ def step1_extract_validation_metrics(current_project_name):
     print(f"步骤1: 提取验证期指标... (项目: {current_project_name})")
 
     root_dir = f"./Result/{model_name}/{current_project_name}"
-    figure_dir = f"./Visualization/Sec1_ModelPerf/{model_name}/{current_project_name}"
-    csv_file = f"./Visualization/Sec1_ModelPerf/{model_name}/{current_project_name}/{model_name}_{current_project_name}_valid_metrics.csv"
+    output_dir = f"./Visualization/Sec1_ModelPerf/{model_name}/{current_project_name}"
+    csv_file = f"{output_dir}/{model_name}_{current_project_name}_valid_metrics.csv"
 
     # 从NC文件读取流域ID顺序
     nc_file_path = os.path.join(root_dir, "epoch_best_flow_pred.nc")
@@ -80,7 +80,7 @@ def step1_extract_validation_metrics(current_project_name):
     nc_data.close()
 
     # 确保输出目录存在
-    os.makedirs(figure_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
 
     # 初始化CSV文件并写入表头
     with open(csv_file, mode="w", newline="") as file:
@@ -92,11 +92,11 @@ def step1_extract_validation_metrics(current_project_name):
                 "Train_Loss",
                 "Validation_Loss",
                 "NSE_Validation",
+                "KGE_Validation",
                 "RMSE_Validation",
                 "Corr_Validation",
-                "KGE_Validation",
-                "FHV_Validation",
-                "FLV_Validation",
+                "PFE_Validation",
+                "PTE_Validation",
             ]
         )
 
@@ -105,42 +105,45 @@ def step1_extract_validation_metrics(current_project_name):
 
     # 处理每个JSON文件
     for json_file in json_files:
+        # 读取JSON文件
         with open(json_file, "r") as f:
             data = json.load(f)
 
-        # 初始化每个流域的最小验证损失跟踪
+        # 初始化每个流域的最小验证损失和相应指标跟踪
         min_loss_metrics = {
             basin: {
                 "epoch": 0,
                 "train_loss": float("inf"),
                 "validation_loss": float("inf"),
                 "NSE": None,
+                "KGE": None,
                 "RMSE": None,
                 "Corr": None,
-                "KGE": None,
-                "FHV": None,
-                "FLV": None,
+                "PFE": None,
+                "PTE": None,
             }
             for basin in basin_ids
         }
 
-        # 遍历每个epoch
+        # 迭代每个epoch
         for run in data["run"]:
             epoch = run["epoch"]
             train_loss = float(run["train_loss"])
-            validation_loss_str = run["validation_loss"]
-            validation_loss = float(validation_loss_str.split("(")[1].split(",")[0])
 
-            # 检查每个流域在此epoch的指标
+            # 提取验证损失
+            validation_loss_str = run["validation_loss"]
+            validation_loss = float(
+                validation_loss_str.split("(")[1].split(",")[0]
+            )   # 检查每个流域在此epoch的指标
             for i, basin in enumerate(basin_ids):
                 nse = run["validation_metric"]["NSE of streamflow"][i]
+                kge = run["validation_metric"]["KGE of streamflow"][i]
                 rmse = run["validation_metric"]["RMSE of streamflow"][i]
                 corr = run["validation_metric"]["Corr of streamflow"][i]
-                kge = run["validation_metric"]["KGE of streamflow"][i]
-                fhv = run["validation_metric"]["FHV of streamflow"][i]
-                flv = run["validation_metric"]["FLV of streamflow"][i]
+                pfe = run["validation_metric"]["PFE of streamflow"][i]
+                pte = run["validation_metric"]["PTE of streamflow"][i]
 
-                # 如果此epoch的验证损失是迄今为止最小的，更新指标
+                # 如果此epoch的验证损失是目前为止最小的，则更新指标
                 if validation_loss < min_loss_metrics[basin]["validation_loss"]:
                     min_loss_metrics[basin].update(
                         {
@@ -148,15 +151,15 @@ def step1_extract_validation_metrics(current_project_name):
                             "train_loss": train_loss,
                             "validation_loss": validation_loss,
                             "NSE": nse,
+                            "KGE": kge,
                             "RMSE": rmse,
                             "Corr": corr,
-                            "KGE": kge,
-                            "FHV": fhv,
-                            "FLV": flv,
+                            "PFE": pfe,
+                            "PTE": pte,
                         }
                     )
 
-        # 将最小损失指标写入CSV
+        # 将最小损失指标写入CSV（每个流域）
         with open(csv_file, mode="a", newline="") as file:
             writer = csv.writer(file)
             for basin, metrics in sorted(min_loss_metrics.items()):
@@ -167,19 +170,11 @@ def step1_extract_validation_metrics(current_project_name):
                         f"{metrics['train_loss']:.3f}",
                         f"{metrics['validation_loss']:.3f}",
                         f"{metrics['NSE']:.3f}" if metrics["NSE"] is not None else None,
-                        (
-                            f"{metrics['RMSE']:.3f}"
-                            if metrics["RMSE"] is not None
-                            else None
-                        ),
-                        (
-                            f"{metrics['Corr']:.3f}"
-                            if metrics["Corr"] is not None
-                            else None
-                        ),
                         f"{metrics['KGE']:.3f}" if metrics["KGE"] is not None else None,
-                        f"{metrics['FHV']:.3f}" if metrics["FHV"] is not None else None,
-                        f"{metrics['FLV']:.3f}" if metrics["FLV"] is not None else None,
+                        f"{metrics['RMSE']:.2f}" if metrics["RMSE"] is not None else None,
+                        f"{metrics['Corr']:.2f}" if metrics["Corr"] is not None else None,
+                        f"{metrics['PFE']:.1f}" if metrics["PFE"] is not None else None,
+                        f"{int(metrics['PTE'])}" if metrics["PTE"] is not None else None,
                     ]
                 )
 
@@ -195,56 +190,35 @@ def dxaj_hydrodataset_args(basin_ids, current_project_name):
 
     model_path = os.path.join(
         "Result", model_name, current_project_name, "best_model.pth"
-    )
+    )  # 修改模型路径
     stat_file_path = os.path.join(
         "Result", model_name, current_project_name, "dapengscaler_stat.json"
-    )
+    )  # 修改统计文件路径
 
     return cmd(
+        # 1. 项目和基础配置
         sub=project_name,
+        ctx=[2],
+        gage_id=basin_ids,
+        # 2. 数据源配置
         source_cfgs={
             "dataset_type": "CHINA",
             "source_name": "Anhui_1H",
             "source_path": DATASETS_DIR["Anhui_1H"]["EXPORT_DIR"],
             "time_unit": ["1h"],
         },
-        model_type="Normal",
-        ctx=[2],
-        model_name="DplLstmXaj",
-        model_hyperparam={
-            "n_input_features": 42,
-            "n_output_features": 15,
-            "n_hidden_states": 16,
-            "kernel_size": 15,
-            "warmup_length": 240,
-            "param_limit_func": "clamp",
-            "param_test_way": "final",
-            "source_book": "HF",
-            "source_type": "sources",
-        },
-        loss_func="MultiOutLoss",
-        loss_param={
-            "loss_funcs": "RMSESum",
-            "data_gap": [0, 0],
-            "device": [2],
-            "item_weight": [1, 0],
-            "limit_part": [1],
-        },
+        # 3. 数据集配置
         dataset="DPLDataset",
-        scaler="DapengScaler",
-        scaler_params={
-            "prcp_norm_cols": ["streamflow"],
-            "gamma_norm_cols": ["P_Anhui"],
-            "pbm_norm": True,
-        },
+        min_time_unit="h",
         train_period=train_period,
         valid_period=valid_period,
         test_period=test_period,
         batch_size=500,
-        min_time_unit="h",
-        forecast_history=0,
-        forecast_length=240,
-        var_t=["P_Anhui", "PET_Anhui"],
+        # 4. 特征和预测设置
+        var_t=[
+            "P_Anhui",
+            "PET_Anhui",
+        ],
         var_c=[
             "sgr_dk_sav",
             "p_mean",
@@ -287,23 +261,64 @@ def dxaj_hydrodataset_args(basin_ids, current_project_name):
             "prm_pc_sse",
             "gla_pc_sse",
         ],
-        var_out=["streamflow", "PET_Anhui"],
-        n_output=2,
-        fill_nan=["no", "no"],
+        var_out=["streamflow"],
+        n_output=1,
+        forecast_history=0,
+        forecast_length=240,
+        which_first_tensor="sequence",
         target_as_input=0,
         constant_only=0,
+        # 5. 数据缩放器配置
+        scaler="DapengScaler",
+        scaler_params={
+            "prcp_norm_cols": [
+                "streamflow",
+            ],
+            "gamma_norm_cols": [
+                "P_Anhui",
+            ],
+            "pbm_norm": True,
+        },
+        # 6. 模型配置
+        model_name="DplLstmXaj",
+        model_type="Normal",
+        model_hyperparam={
+            "n_input_features": 42,
+            "n_output_features": 15,
+            "n_hidden_states": 16,
+            "kernel_size": 15,
+            "warmup_length": 240,
+            "param_limit_func": "clamp",
+            "param_test_way": "final",
+            "source_book": "HF",
+            "source_type": "sources",
+        },
+        # 7. 训练配置
         train_epoch=20,
         save_epoch=1,
         warmup_length=240,
-        opt="Adam",
-        opt_param={"lr": 0.001},
-        lr_scheduler={"lr": 0.001, "lr_factor": 0.98},
-        which_first_tensor="sequence",
-        metrics=["NSE", "RMSE", "Corr", "KGE", "FHV", "FLV"],
-        gage_id=basin_ids,
         train_mode=0,
-        model_loader={"load_way": "pth", "pth_path": model_path},
         stat_dict_file=stat_file_path,
+        # 8. 优化器配置
+        opt="Adam",
+        opt_param={
+            "lr": 0.005,
+        },
+        lr_scheduler={
+            "lr": 0.005,
+            "lr_factor": 0.95,
+        },
+        # 9. 损失函数配置
+        loss_func="RMSE",
+        # loss_func="Hybrid",
+        # loss_param={
+        #     "mae_weight": 0.5,
+        #     "reduction": "mean",
+        # },
+        # 10. 评估配置
+        model_loader={"load_way": "pth", "pth_path": model_path},
+        fill_nan=["no"],
+        metrics=["NSE", "KGE", "RMSE", "Corr", "PFE", "PTE"],
     )
 
 
@@ -332,7 +347,7 @@ def step3_merge_training_validation_data(current_project_name):
     # 创建输出目录
     os.makedirs(os.path.dirname(output_csv), exist_ok=True)
 
-    # 加载训练指标文件
+    # 加载单个训练指标文件
     train_metric_file = os.path.join(root_dir, "metric_streamflow.csv")
     if os.path.isfile(train_metric_file):
         train_combined_df = pd.read_csv(train_metric_file)
@@ -355,23 +370,25 @@ def step3_merge_training_validation_data(current_project_name):
                     "KGE": "KGE_Train",
                     "RMSE": "RMSE_Train",
                     "Corr": "Corr_Train",
-                    "FHV": "FHV_Train",
-                    "FLV": "FLV_Train",
-                    "trainloss": "TrainLoss",
+                    "PFE": "PFE_Train",
+                    "PTE": "PTE_Train",
+                    "trainloss": "Train_Loss",
                 },
                 inplace=True,
             )
 
-            # 将指定列四舍五入到3位小数
-            for col in [
-                "NSE_Train",
-                "KGE_Train",
-                "RMSE_Train",
-                "Corr_Train",
-                "FHV_Train",
-                "FLV_Train",
-            ]:
+            # 四舍五入指定列，匹配step1格式
+            # NSE和KGE: 3位小数
+            for col in ["NSE_Train", "KGE_Train"]:
                 train_combined_df[col] = train_combined_df[col].round(3)
+            # RMSE和Corr: 2位小数
+            for col in ["RMSE_Train", "Corr_Train"]:
+                train_combined_df[col] = train_combined_df[col].round(2)
+            # PFE: 1位小数
+            train_combined_df["PFE_Train"] = train_combined_df["PFE_Train"].round(1)
+            # PTE: 整数（安全处理NA值）
+            train_combined_df["PTE_Train"] = train_combined_df["PTE_Train"].fillna(0).round(0)
+            train_combined_df["PTE_Train"] = train_combined_df["PTE_Train"].astype(int, errors='ignore')
 
             # 按Basin_ID排序
             train_combined_df.sort_values(by="Basin_ID", inplace=True)
@@ -380,17 +397,17 @@ def step3_merge_training_validation_data(current_project_name):
             train_combined_df.to_csv(output_csv, index=False)
             print(f"训练数据已保存到: {output_csv}")
         else:
-            print("未找到用于流域顺序的NC文件")
+            print("未找到用于流域顺序的NC文件。")
             return
     else:
-        print("未找到训练指标文件")
+        print("未找到训练指标文件。")
         return
 
     # 检查验证文件是否存在并合并
     if not os.path.isfile(valid_csv):
-        print("未找到验证数据文件，合并过程结束")
+        print("未找到验证数据文件，合并过程结束。")
         return
-
+    
     # 读取验证数据
     valid_df = pd.read_csv(valid_csv)
 
@@ -405,21 +422,34 @@ def step3_merge_training_validation_data(current_project_name):
         "Epoch",
         "NSE_Train",
         "NSE_Validation",
+        "KGE_Train",
+        "KGE_Validation",
         "RMSE_Train",
         "RMSE_Validation",
         "Corr_Train",
         "Corr_Validation",
-        "KGE_Train",
-        "KGE_Validation",
-        "FHV_Train",
-        "FHV_Validation",
-        "FLV_Train",
-        "FLV_Validation",
+        "PFE_Train",
+        "PFE_Validation",
+        "PTE_Train",
+        "PTE_Validation",
     ]
-    merged_df = merged_df[desired_columns_order]
+    merged_df = merged_df[[col for col in desired_columns_order if col in merged_df.columns]]
 
-    # 保存合并数据到CSV，保留3位小数
-    merged_df.to_csv(combined_csv, index=False, float_format="%.3f")
+    # 保存合并数据到CSV，并正确格式化数字
+    for col in merged_df.columns:
+        if "NSE" in col or "KGE" in col:
+            merged_df[col] = merged_df[col].round(3)
+        elif "RMSE" in col or "Corr" in col:
+            merged_df[col] = merged_df[col].round(2)
+        elif "PFE" in col:
+            merged_df[col] = merged_df[col].round(1)
+        elif "PTE" in col:
+            # 安全处理可能存在的NA值
+            merged_df[col] = merged_df[col].fillna(0).round(0)
+            merged_df[col] = merged_df[col].astype(int, errors='ignore')
+    
+    # 保存到CSV
+    merged_df.to_csv(combined_csv, index=False)
     print(f"训练和验证数据已合并并保存到: {combined_csv}")
 
 
@@ -448,9 +478,49 @@ def clean_and_merge_nse(df):
     return result
 
 
+def clean_and_merge_metrics(df):
+    """清理并合并指标列"""
+    df = df.copy()
+    metrics = ["NSE", "KGE", "RMSE", "Corr"]
+    mask_use_train = pd.Series(False, index=df.index)
+    train_col, valid_col = "NSE_Train", "NSE_Validation"
+    for col in [train_col, valid_col]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(
+                df[col].replace("#NAME?", np.nan), errors="coerce"
+            ).apply(lambda x: x if abs(x) < 1e6 else np.nan)
+    if train_col in df.columns and valid_col in df.columns:
+        mask_use_train = df[valid_col].isna()
+        df["NSE"] = df[valid_col].combine_first(df[train_col])
+    for metric in metrics[1:]:
+        train_col, valid_col = f"{metric}_Train", f"{metric}_Validation"
+        for col in [train_col, valid_col]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(
+                    df[col].replace("#NAME?", np.nan), errors="coerce"
+                ).apply(lambda x: x if abs(x) < 1e6 else np.nan)
+        if train_col in df.columns and valid_col in df.columns:
+            df[metric] = df[valid_col].combine_first(df[train_col])
+    for metric in ["PFE", "PTE"]:
+        train_col, valid_col = f"{metric}_Train", f"{metric}_Validation"
+
+        if train_col in df.columns and valid_col in df.columns:
+            df[train_col] = pd.to_numeric(df[train_col], errors="coerce")
+            df[valid_col] = pd.to_numeric(df[valid_col], errors="coerce")
+
+            df[metric] = np.where(mask_use_train, df[train_col], df[valid_col])
+
+    cols_to_keep = (
+        ["Basin_ID", "Train_Loss", "Validation_Loss", "Epoch"]
+        + metrics
+        + ["PFE", "PTE"]
+    )
+    return df[[col for col in cols_to_keep if col in df.columns]]
+
+
 def step4_standardize_data(current_project_name):
-    """步骤4: 数据标准化和清理"""
-    print(f"步骤4: 数据标准化和清理... (项目: {current_project_name})")
+    """步骤4: 标准化数据"""
+    print(f"步骤4: 标准化数据... (项目: {current_project_name})")
 
     combined_csv = f"./Visualization/Sec1_ModelPerf/{model_name}/{current_project_name}/{model_name}_{current_project_name}_metrics.csv"
     final_csv = f"./Visualization/Sec1_ModelPerf/{model_name}/{current_project_name}/{model_name}_{current_project_name}.csv"
@@ -462,10 +532,10 @@ def step4_standardize_data(current_project_name):
     # 读取数据
     df = pd.read_csv(combined_csv)
 
-    # 处理数据
-    cleaned_df = clean_and_merge_nse(df)
+    # 清理和合并指标
+    cleaned_df = clean_and_merge_metrics(df)
 
-    # 保存结果
+    # 保存到最终CSV
     cleaned_df.to_csv(final_csv, index=False)
     print(f"标准化数据已保存到: {final_csv}")
 
@@ -477,7 +547,6 @@ def merge_final_csvs():
         final_csv = f"./Visualization/Sec1_ModelPerf/{model_name}/{project}/{model_name}_{project}.csv"
         if os.path.isfile(final_csv):
             df = pd.read_csv(final_csv)
-            df["Project"] = project
             all_dfs.append(df)
         else:
             print(f"未找到: {final_csv}")

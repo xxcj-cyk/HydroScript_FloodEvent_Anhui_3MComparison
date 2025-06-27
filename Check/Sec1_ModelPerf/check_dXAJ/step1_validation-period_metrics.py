@@ -2,27 +2,24 @@ import os
 import json
 import glob
 import xarray as xr
-import matplotlib.pyplot as plt
 import csv
 
-# Define project and directories
+# 定义项目和路径
 base_project_name = "anhui21_797_PET_Anhui"
-model_name = "Anhui_EnLoss-dPL"
+model_name = "Anhui_dPL"
 root_dir = f"./Result/{model_name}/{base_project_name}"
-figure_dir = f"./Visualization/Sec1_ModelPerf/{model_name}/{base_project_name}"
-csv_file = f"./Visualization/Sec1_ModelPerf/{model_name}/{base_project_name}/{model_name}_{base_project_name}_valid_metrics.csv"
+output_dir = f"./Visualization/Sec1_ModelPerf/{model_name}/{base_project_name}"
+csv_file = f"{output_dir}/{model_name}_{base_project_name}_valid_metrics.csv"
 
-# Read basin IDs order from epochbest_model.pthflow_pred.nc file
+# 从NetCDF文件中读取流域ID顺序
 nc_file_path = os.path.join(root_dir, "epoch_best_flow_pred.nc")
 nc_data = xr.open_dataset(nc_file_path)
-
-# Assuming the .nc file has a variable 'basin_id' with the correct order of basin IDs
 basin_ids = list(nc_data["basin"].values)
 
-# Ensure the directory for saving figures exists
-os.makedirs(figure_dir, exist_ok=True)
+# 确保输出目录存在
+os.makedirs(output_dir, exist_ok=True)
 
-# Initialize the CSV file and write the header
+# 初始化CSV文件并写入表头
 with open(csv_file, mode="w", newline="") as file:
     writer = csv.writer(file)
     writer.writerow(
@@ -32,75 +29,58 @@ with open(csv_file, mode="w", newline="") as file:
             "Train_Loss",
             "Validation_Loss",
             "NSE_Validation",
+            "KGE_Validation",
             "RMSE_Validation",
             "Corr_Validation",
-            "KGE_Validation",
-            "FHV_Validation",
-            "FLV_Validation",
+            "PFE_Validation",
+            "PTE_Validation",
         ]
     )
 
-# Use glob to find matching JSON files
+# 使用glob查找匹配的JSON文件
 json_files = glob.glob(os.path.join(root_dir, "*_2025*.json"))
 
-# Process each JSON file
+# 处理每个JSON文件
 for json_file in json_files:
-    # Read the JSON file
+    # 读取JSON文件
     with open(json_file, "r") as f:
         data = json.load(f)
 
-    # Initialize tracking for each basin's minimum validation loss and corresponding metrics
+    # 初始化每个流域的最小验证损失和相应指标跟踪
     min_loss_metrics = {
         basin: {
             "epoch": 0,
             "train_loss": float("inf"),
             "validation_loss": float("inf"),
             "NSE": None,
+            "KGE": None,
             "RMSE": None,
             "Corr": None,
-            "KGE": None,
-            "FHV": None,
-            "FLV": None,
+            "PFE": None,
+            "PTE": None,
         }
         for basin in basin_ids
     }
 
-    # Extract epoch-wise data for plotting
-    epoch_data = {
-        basin: {
-            "epochs": [],
-            "train_losses": [],
-            "validation_losses": [],
-            "nse_values": [],
-        }
-        for basin in basin_ids
-    }
-
-    # Iterate through each epoch
+    # 迭代每个epoch
     for run in data["run"]:
         epoch = run["epoch"]
         train_loss = float(run["train_loss"])
+
+        # 提取验证损失
         validation_loss_str = run["validation_loss"]
         validation_loss = float(
             validation_loss_str.split("(")[1].split(",")[0]
-        )  # Extract validation loss
-
-        # Check each basin's metrics at this epoch
+        )   # 检查每个流域在此epoch的指标
         for i, basin in enumerate(basin_ids):
             nse = run["validation_metric"]["NSE of streamflow"][i]
+            kge = run["validation_metric"]["KGE of streamflow"][i]
             rmse = run["validation_metric"]["RMSE of streamflow"][i]
             corr = run["validation_metric"]["Corr of streamflow"][i]
-            kge = run["validation_metric"]["KGE of streamflow"][i]
-            fhv = run["validation_metric"]["FHV of streamflow"][i]
-            flv = run["validation_metric"]["FLV of streamflow"][i]
+            pfe = run["validation_metric"]["PFE of streamflow"][i]
+            pte = run["validation_metric"]["PTE of streamflow"][i]
 
-            # Store data for plotting
-            epoch_data[basin]["epochs"].append(epoch)
-            epoch_data[basin]["train_losses"].append(train_loss)
-            epoch_data[basin]["validation_losses"].append(validation_loss)
-            epoch_data[basin]["nse_values"].append(nse)
-
-            # If this epoch's validation loss for this basin is the smallest so far, update the metrics
+            # 如果此epoch的验证损失是目前为止最小的，则更新指标
             if validation_loss < min_loss_metrics[basin]["validation_loss"]:
                 min_loss_metrics[basin].update(
                     {
@@ -108,29 +88,29 @@ for json_file in json_files:
                         "train_loss": train_loss,
                         "validation_loss": validation_loss,
                         "NSE": nse,
+                        "KGE": kge,
                         "RMSE": rmse,
                         "Corr": corr,
-                        "KGE": kge,
-                        "FHV": fhv,
-                        "FLV": flv,
+                        "PFE": pfe,
+                        "PTE": pte,
                     }
                 )
 
-    # Write min-loss metrics to CSV for each basin
+    # 将最小损失指标写入CSV（每个流域）
     with open(csv_file, mode="a", newline="") as file:
         writer = csv.writer(file)
         for basin, metrics in sorted(min_loss_metrics.items()):
             writer.writerow(
                 [
                     basin,
-                    metrics["epoch"],  # Keep epoch as is
+                    metrics["epoch"],
                     f"{metrics['train_loss']:.3f}",
                     f"{metrics['validation_loss']:.3f}",
                     f"{metrics['NSE']:.3f}" if metrics["NSE"] is not None else None,
-                    f"{metrics['RMSE']:.3f}" if metrics["RMSE"] is not None else None,
-                    f"{metrics['Corr']:.3f}" if metrics["Corr"] is not None else None,
                     f"{metrics['KGE']:.3f}" if metrics["KGE"] is not None else None,
-                    f"{metrics['FHV']:.3f}" if metrics["FHV"] is not None else None,
-                    f"{metrics['FLV']:.3f}" if metrics["FLV"] is not None else None,
+                    f"{metrics['RMSE']:.2f}" if metrics["RMSE"] is not None else None,
+                    f"{metrics['Corr']:.2f}" if metrics["Corr"] is not None else None,
+                    f"{metrics['PFE']:.1f}" if metrics["PFE"] is not None else None,
+                    f"{int(metrics['PTE'])}" if metrics["PTE"] is not None else None,
                 ]
             )

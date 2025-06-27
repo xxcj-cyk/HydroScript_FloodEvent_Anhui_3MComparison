@@ -4,8 +4,8 @@ from hydrodata_china.settings.datasets_dir import DATASETS_DIR
 from hydromodel_dl.configs.config import default_config_file, update_cfg, cmd
 from hydromodel_dl.trainers.trainer import train_and_evaluate
 
-base_project_name = "anhui21_797_PET_Anhui"  # Change the base_project name(xxx_train)
-model_name = "Anhui_EnLoss-dPL"
+base_project_name = "anhui21_797_PET_Anhui"
+model_name = "Anhui_dPL"
 csv_path = r"./Data/All/anhui21_797.csv"
 
 
@@ -28,62 +28,25 @@ def dxaj_hydrodataset_args(basin_ids):
     )  # Change the stat file path
 
     return cmd(
+        # 1. 项目和基础配置
         sub=project_name,
+        ctx=[2],
+        gage_id=basin_ids,
+        # 2. 数据源配置
         source_cfgs={
             "dataset_type": "CHINA",
             "source_name": "Anhui_1H",
             "source_path": DATASETS_DIR["Anhui_1H"]["EXPORT_DIR"],
             "time_unit": ["1h"],
         },
-        # model_type="MTL",
-        model_type="Normal",
-        ctx=[2],
-        model_name="DplLstmXaj",
-        
-        model_hyperparam={
-            "n_input_features": 42,
-            "n_output_features": 15,
-            "n_hidden_states": 16,
-            "kernel_size": 15,
-            "warmup_length": 240,
-            "param_limit_func": "clamp",
-            "param_test_way": "final",
-            "source_book": "HF",
-            "source_type": "sources",
-        },
-        loss_func="MultiOutLoss",  # 替换损失函数
-        # loss_param={
-        #     "loss_funcs": "RMSESum",
-        #     "data_gap": [0, 0],
-        #     "device": [2],
-        #     "item_weight": [1, 0],
-        #     "limit_part": [1],
-        # },
-        loss_param = {
-            "loss_funcs": "Hybrid",
-            "data_gap": [0, 0],
-            "device": [2],
-            "item_weight": [1, 0],
-            "limit_part": [1],
-        },
+        # 3. 数据集配置
         dataset="DPLDataset",
-        scaler="DapengScaler",
-        scaler_params={
-            "prcp_norm_cols": [
-                "streamflow",
-            ],
-            "gamma_norm_cols": [
-                "P_Anhui",
-            ],
-            "pbm_norm": True,
-        },
+        min_time_unit="h",
         train_period=train_period,
         valid_period=valid_period,
         test_period=test_period,
         batch_size=500,
-        min_time_unit="h",
-        forecast_history=0,
-        forecast_length=240,#warmup_length相同
+        # 4. 特征和预测设置
         var_t=[
             "P_Anhui",
             "PET_Anhui",
@@ -132,14 +95,45 @@ def dxaj_hydrodataset_args(basin_ids):
             "prm_pc_sse",
             "gla_pc_sse",
         ],
-        var_out=["streamflow", "PET_Anhui"],  # 添加参数
-        n_output=2,  # 添加参数
-        fill_nan=["no", "no"],  # 添加参数
+        var_out=["streamflow"],
+        n_output=1,
+        forecast_history=0,
+        forecast_length=240,
+        which_first_tensor="sequence",
         target_as_input=0,
         constant_only=0,
+        # 5. 数据缩放器配置
+        scaler="DapengScaler",
+        scaler_params={
+            "prcp_norm_cols": [
+                "streamflow",
+            ],
+            "gamma_norm_cols": [
+                "P_Anhui",
+            ],
+            "pbm_norm": True,
+        },
+        # 6. 模型配置
+        model_name="DplLstmXaj",
+        model_type="Normal",
+        model_hyperparam={
+            "n_input_features": 42,
+            "n_output_features": 15,
+            "n_hidden_states": 16,
+            "kernel_size": 15,
+            "warmup_length": 240,
+            "param_limit_func": "clamp",
+            "param_test_way": "final",
+            "source_book": "HF",
+            "source_type": "sources",
+        },
+        # 7. 训练配置
         train_epoch=20,
         save_epoch=1,
-        warmup_length=240,#warmup_length同前
+        warmup_length=240,
+        train_mode=0,
+        stat_dict_file=stat_file_path,
+        # 8. 优化器配置
         opt="Adam",
         opt_param={
             "lr": 0.005,
@@ -148,13 +142,19 @@ def dxaj_hydrodataset_args(basin_ids):
             "lr": 0.005,
             "lr_factor": 0.95,
         },
-        which_first_tensor="sequence",
-        metrics=["NSE", "RMSE", "Corr", "KGE", "FHV", "FLV"],
-        gage_id=basin_ids,
-        train_mode=0,
+        # 9. 损失函数配置
+        loss_func="RMSE",
+        # loss_func="Hybrid",
+        # loss_param={
+        #     "mae_weight": 0.5,
+        #     "reduction": "mean",
+        # },
+        # 10. 评估配置
         model_loader={"load_way": "pth", "pth_path": model_path},
-        stat_dict_file=stat_file_path,
+        fill_nan=["no"],
+        metrics=["NSE", "KGE", "RMSE", "Corr", "PFE", "PTE"],
     )
+
 
 def run_dpl_exp(csv_path):
     cfg = default_config_file()
@@ -163,5 +163,6 @@ def run_dpl_exp(csv_path):
     update_cfg(cfg, args_)
     train_and_evaluate(cfg)
     print("All processes are finished!")
+
 
 run_dpl_exp(csv_path)

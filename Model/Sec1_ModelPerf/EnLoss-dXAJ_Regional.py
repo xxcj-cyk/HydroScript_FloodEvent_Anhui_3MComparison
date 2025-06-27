@@ -14,7 +14,7 @@ def load_basin_ids(csv_path):
 
 
 def dxaj_hydrodataset_args(basin_ids):
-    project_name = os.path.join("Anhui_EnLoss-dPL", "anhui_21_797_PET_Anhui")
+    project_name = os.path.join("Anhui_EnLoss-dPL", "anhui21_797_PET_Anhui")
     train_period = ["2024-07-01 00:00:00", "2024-07-31 23:00:00"]
     valid_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
     test_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]

@@ -4,7 +4,7 @@ import pandas as pd
 
 base_project_name = "anhui21_797_PET_Anhui"
 project_name = f"{base_project_name}_train"
-model_name = "Anhui_EnLoss-dPL"
+model_name = "Anhui_dPL"
 root_dir = f"./Result/{model_name}/{project_name}"
 output_csv = f"./Visualization/Sec1_ModelPerf/{model_name}/{base_project_name}/{model_name}_{project_name}_metrics.csv"
 valid_csv = f"./Visualization/Sec1_ModelPerf/{model_name}/{base_project_name}/{model_name}_{base_project_name}_valid_metrics.csv"
@@ -38,23 +38,25 @@ if os.path.isfile(train_metric_file):
                 "KGE": "KGE_Train",
                 "RMSE": "RMSE_Train",
                 "Corr": "Corr_Train",
-                "FHV": "FHV_Train",
-                "FLV": "FLV_Train",
-                "trainloss": "TrainLoss",
+                "PFE": "PFE_Train",
+                "PTE": "PTE_Train",
+                "trainloss": "Train_Loss",
             },
             inplace=True,
         )
 
-        # Round specified columns to 3 decimal places
-        for col in [
-            "NSE_Train",
-            "KGE_Train",
-            "RMSE_Train",
-            "Corr_Train",
-            "FHV_Train",
-            "FLV_Train",
-        ]:
+        # Round specified columns to match step1 format
+        # NSE and KGE: 3 decimal places
+        for col in ["NSE_Train", "KGE_Train"]:
             train_combined_df[col] = train_combined_df[col].round(3)
+        # RMSE and Corr: 2 decimal places
+        for col in ["RMSE_Train", "Corr_Train"]:
+            train_combined_df[col] = train_combined_df[col].round(2)
+        # PFE: 1 decimal place
+        train_combined_df["PFE_Train"] = train_combined_df["PFE_Train"].round(1)
+        # PTE: integer (safely handle NA values)
+        train_combined_df["PTE_Train"] = train_combined_df["PTE_Train"].fillna(0).round(0)
+        train_combined_df["PTE_Train"] = train_combined_df["PTE_Train"].astype(int, errors='ignore')
 
         # Sort by 'Basin_ID'
         train_combined_df.sort_values(by="Basin_ID", inplace=True)
@@ -85,19 +87,32 @@ else:
         "Epoch",
         "NSE_Train",
         "NSE_Validation",
+        "KGE_Train",
+        "KGE_Validation",
         "RMSE_Train",
         "RMSE_Validation",
         "Corr_Train",
         "Corr_Validation",
-        "KGE_Train",
-        "KGE_Validation",
-        "FHV_Train",
-        "FHV_Validation",
-        "FLV_Train",
-        "FLV_Validation",
+        "PFE_Train",
+        "PFE_Validation",
+        "PTE_Train",
+        "PTE_Validation",
     ]
     merged_df = merged_df[desired_columns_order]
 
-    # Save merged data to CSV with 3 decimal places
-    merged_df.to_csv(combined_csv, index=False, float_format="%.3f")
+    # Save merged data to CSV with correct number format
+    for col in merged_df.columns:
+        if "NSE" in col or "KGE" in col:
+            merged_df[col] = merged_df[col].round(3)
+        elif "RMSE" in col or "Corr" in col:
+            merged_df[col] = merged_df[col].round(2)
+        elif "PFE" in col:
+            merged_df[col] = merged_df[col].round(1)
+        elif "PTE" in col:
+            # 安全处理可能存在的NA值
+            merged_df[col] = merged_df[col].fillna(0).round(0)
+            merged_df[col] = merged_df[col].astype(int, errors='ignore')
+    
+    # Save to CSV
+    merged_df.to_csv(combined_csv, index=False)
     print(f"Training and validation data merged and saved to {combined_csv}")
