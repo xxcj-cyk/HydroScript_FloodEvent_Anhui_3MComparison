@@ -6,11 +6,11 @@ import matplotlib.pyplot as plt
 import csv
 
 # Define project and directories
-base_project_name = "anhui_21basin_797flood"
-model_name = "Anhui_LSTM16"
-root_dir = f"./results/{model_name}/{base_project_name}"
-figure_dir = f"./visualizations/evaluation_metrics/{model_name}/{base_project_name}"
-csv_file = f"./visualizations/evaluation_metrics/{model_name}/{base_project_name}/{model_name}_{base_project_name}_valid_metrics.csv"
+base_project_name = "anhui21_797_PET_Anhui"
+model_name = "Anhui_EnLoss-dPL"
+root_dir = f"./Result/{model_name}/{base_project_name}"
+figure_dir = f"./Visualization/Sec1_ModelPerf/{model_name}/{base_project_name}"
+csv_file = f"./Visualization/Sec1_ModelPerf/{model_name}/{base_project_name}/{model_name}_{base_project_name}_valid_metrics.csv"
 
 # Read basin IDs order from epochbest_model.pthflow_pred.nc file
 nc_file_path = os.path.join(root_dir, "epoch_best_flow_pred.nc")
@@ -134,47 +134,3 @@ for json_file in json_files:
                     f"{metrics['FLV']:.3f}" if metrics["FLV"] is not None else None,
                 ]
             )
-
-    # # Plotting each basin
-    # for basin in basin_ids:
-    #     fig, axs = plt.subplots(2, 1, figsize=(10, 15))
-
-    #     # Retrieve the minimum validation loss epoch data
-    #     min_vali_epoch = min_loss_metrics[basin]['epoch']
-    #     min_vali_loss = min_loss_metrics[basin]['validation_loss']
-    #     nse_at_min_vali = min_loss_metrics[basin]['NSE']
-
-    #     # Plot Loss
-    #     axs[0].plot(epoch_data[basin]['epochs'], epoch_data[basin]['train_losses'], marker='o', markersize=4, label='Train Loss')
-    #     axs[0].plot(epoch_data[basin]['epochs'], epoch_data[basin]['validation_losses'], marker='o', markersize=4, label='Validation Loss')
-    #     axs[0].set_xlabel('Epoch')
-    #     axs[0].set_ylabel('Loss')
-    #     axs[0].set_title(f'Train and Validation Loss over Epochs for {basin}')
-    #     axs[0].legend()
-    #     axs[0].grid(True)
-
-    #     # Mark the minimum validation loss
-    #     axs[0].plot(min_vali_epoch, min_vali_loss, marker='x', color='red', markersize=10)
-    #     axs[0].text(min_vali_epoch, min_vali_loss + 0.02,
-    #                 f'Min Vali. Loss: {min_vali_loss:.2f}', fontsize=15, color='red', ha='center', fontweight='bold')
-
-    #     # Plot NSE
-    #     axs[1].plot(epoch_data[basin]['epochs'], epoch_data[basin]['nse_values'], marker='o', markersize=4, label='Validation NSE')
-    #     axs[1].set_xlabel('Epoch')
-    #     axs[1].set_ylabel('NSE')
-    #     axs[1].set_title(f'NSE over Epochs for {basin}')
-    #     axs[1].legend()
-    #     axs[1].grid(True)
-
-    #     # Mark the NSE at minimum validation loss
-    #     axs[1].plot(min_vali_epoch, nse_at_min_vali, marker='x', color='red', markersize=10)
-    #     axs[1].text(min_vali_epoch, nse_at_min_vali - 0.02, f'NSE at Min-Vali: {nse_at_min_vali:.2f}',
-    #                 fontsize=15, color='red', ha='center', fontweight='bold')
-
-    #     # Adjust layout and save the plot
-    #     plt.tight_layout()
-
-    #     # Save figure to specified directory
-    #     output_filename = os.path.join(figure_dir, f'evaluation_metrics_{basin}.png')
-    #     plt.savefig(output_filename, dpi=600)
-    #     plt.close(fig)
