@@ -1,11 +1,11 @@
 import os
 import pandas as pd
-from hydrodata_china.settings.datasets_dir import DATASETS_DIR
+from hydromodel_dl.datasets.data_readers import DATASETS_DIR_CHINA as DATASETS_DIR
 from hydromodel_dl.configs.config import default_config_file, update_cfg, cmd
 from hydromodel_dl.trainers.trainer import train_and_evaluate
 
-base_project_name = "anhui21_797_PET_Anhui"
-model_name = "Anhui_EnLoss-LSTM"
+base_project_name = "anhui18_691_PET_Anhui"
+model_name = "Anhui_LSTM"
 csv_path = r"./Data/All/anhui21_797.csv"
 
 
@@ -136,12 +136,12 @@ def lstm_hydrodataset_args(basin_ids):
             "lr_factor": 0.95,
         },
         # 9. 损失函数配置
-        # loss_func="RMSE",
-        loss_func="Hybrid",
-        loss_param={
-            "mae_weight": 0.5,
-            "reduction": "mean",
-        },
+        loss_func="RMSE",
+        # loss_func="Hybrid",
+        # loss_param={
+        #     "mae_weight": 0.5,
+        #     "reduction": "mean",
+        # },
         # 10. 评估配置
         model_loader={"load_way": "pth", "pth_path": model_path},
         fill_nan=["no"],

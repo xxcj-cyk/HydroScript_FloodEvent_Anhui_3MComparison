@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
 
-base_project_name = "anhui21_797_PET_Anhui"
-model_name = "Anhui_EnLoss-LSTM"
+base_project_name = "anhui18_691_PET_Anhui"
+model_name = "Anhui_LSTM"
 combined_csv = f"./Visualization/Sec1_ModelPerf/{model_name}/{base_project_name}/{model_name}_{base_project_name}_metrics.csv"
 final_csv = f"./Visualization/Sec1_ModelPerf/{model_name}/{base_project_name}/{model_name}_{base_project_name}.csv"
 

@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import multiprocessing as mp
-from hydrodata_china.settings.datasets_dir import DATASETS_DIR
+from hydromodel_dl.datasets.data_readers import DATASETS_DIR_CHINA as DATASETS_DIR
 from hydromodel_dl.configs.config import default_config_file, update_cfg, cmd
 from hydromodel_dl.trainers.trainer import train_and_evaluate
 

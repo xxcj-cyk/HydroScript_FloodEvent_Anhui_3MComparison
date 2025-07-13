@@ -2,9 +2,9 @@ import os
 import xarray as xr
 import pandas as pd
 
-base_project_name = "anhui21_797_PET_Anhui"
+base_project_name = "anhui18_691_PET_Anhui"
 project_name = f"{base_project_name}_train"
-model_name = "Anhui_EnLoss-LSTM"
+model_name = "Anhui_LSTM"
 root_dir = f"./Result/{model_name}/{project_name}"
 output_csv = f"./Visualization/Sec1_ModelPerf/{model_name}/{base_project_name}/{model_name}_{project_name}_metrics.csv"
 valid_csv = f"./Visualization/Sec1_ModelPerf/{model_name}/{base_project_name}/{model_name}_{base_project_name}_valid_metrics.csv"

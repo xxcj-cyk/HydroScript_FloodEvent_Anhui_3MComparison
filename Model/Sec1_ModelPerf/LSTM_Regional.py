@@ -1,11 +1,11 @@
 import os
 import pandas as pd
-from hydrodata_china.settings.datasets_dir import DATASETS_DIR
+from hydromodel_dl.datasets.data_readers import DATASETS_DIR_CHINA as DATASETS_DIR
 from hydromodel_dl.configs.config import default_config_file, update_cfg, cmd
 from hydromodel_dl.trainers.trainer import train_and_evaluate
 
 
-csv_path = r"./Data/All/anhui21_797.csv"
+csv_path = r"./Data/All/anhui18_691.csv"
 
 
 def load_basin_ids(csv_path):
@@ -14,7 +14,7 @@ def load_basin_ids(csv_path):
 
 
 def lstm_hydrodataset_args(basin_ids):
-    project_name = os.path.join("Anhui_LSTM", "anhui21_797_PET_Anhui")
+    project_name = os.path.join("Anhui_LSTM", "anhui18_691_PET_Anhui11")
     train_period = ["2024-07-01 00:00:00", "2024-07-31 23:00:00"]
     valid_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
     test_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
@@ -112,6 +112,7 @@ def lstm_hydrodataset_args(basin_ids):
             "hidden_size": 16,
         },
         # 7. 训练配置
+        # train_epoch=50,
         train_epoch=50,
         save_epoch=1,
         warmup_length=0,

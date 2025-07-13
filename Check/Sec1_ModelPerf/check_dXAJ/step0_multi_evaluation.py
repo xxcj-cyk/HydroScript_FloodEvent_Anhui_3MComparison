@@ -33,7 +33,7 @@ base_project_name = [
     "anhui_70112150_10",
     "anhui_70114100_35",
 ]
-model_name = "Anhui_dPL"
+model_name = "Anhui_EnLoss-dPL"
 csv_path = [
     "./Data/All/anhui_50406910_28.csv",
     "./Data/All/anhui_50501200_36.csv",
@@ -309,12 +309,12 @@ def dxaj_hydrodataset_args(basin_ids, current_project_name):
             "lr_factor": 0.95,
         },
         # 9. 损失函数配置
-        loss_func="RMSE",
-        # loss_func="Hybrid",
-        # loss_param={
-        #     "mae_weight": 0.5,
-        #     "reduction": "mean",
-        # },
+        # loss_func="RMSE",
+        loss_func="Hybrid",
+        loss_param={
+            "mae_weight": 0.5,
+            "reduction": "mean",
+        },
         # 10. 评估配置
         model_loader={"load_way": "pth", "pth_path": model_path},
         fill_nan=["no"],

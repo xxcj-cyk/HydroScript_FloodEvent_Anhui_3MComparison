@@ -5,8 +5,8 @@ import xarray as xr
 import csv
 
 # 定义项目和路径
-base_project_name = "anhui21_797_PET_Anhui"
-model_name = "Anhui_EnLoss-LSTM"
+base_project_name = "anhui18_691_PET_Anhui"
+model_name = "Anhui_LSTM"
 root_dir = f"./Result/{model_name}/{base_project_name}"
 output_dir = f"./Visualization/Sec1_ModelPerf/{model_name}/{base_project_name}"
 csv_file = f"{output_dir}/{model_name}_{base_project_name}_valid_metrics.csv"
