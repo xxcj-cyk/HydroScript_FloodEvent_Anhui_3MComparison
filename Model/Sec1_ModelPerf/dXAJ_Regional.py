@@ -18,7 +18,10 @@ def dxaj_hydrodataset_args(basin_ids):
     train_period = ["2024-07-01 00:00:00", "2024-07-31 23:00:00"]
     valid_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
     test_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
+    # test_period = ["2024-07-01 00:00:00", "2024-07-31 23:00:00"]
     return cmd(
+        # train_mode=False,
+        # stat_dict_file=r"C:\Programming\hydro_chai\HydroScript_FloodEvent_Anhui_3MComparison\Result\Anhui_dPL\anhui18_691_PET_Anhui_fast\dapengscaler_stat.json",
         # 1. 项目和基础配置
         sub=project_name,
         ctx=[2],
@@ -31,12 +34,12 @@ def dxaj_hydrodataset_args(basin_ids):
             "time_unit": ["1h"],
         },
         # 3. 数据集配置
-        dataset="FloodEventDataset",
+        dataset="FloodEventDplDataset",
         min_time_unit="h",
         train_period=train_period,
         valid_period=valid_period,
         test_period=test_period,
-        batch_size=1000,
+        batch_size=50,
         # 4. 特征和预测设置
         var_t=[
             "P_Anhui",
@@ -119,7 +122,7 @@ def dxaj_hydrodataset_args(basin_ids):
             "source_type": "sources",
         },
         # 7. 训练配置
-        train_epoch=20,
+        train_epoch=3,
         save_epoch=1,
         warmup_length=240,
         # 8. 优化器配置
@@ -134,9 +137,10 @@ def dxaj_hydrodataset_args(basin_ids):
         # 9. 损失函数配置
         loss_func="RMSEFlood",
         # 10. 评估配置
-        model_loader={"load_way": "best"},
+        model_loader={"load_way": "specified", "test_epoch": 3},
         fill_nan=["no"],
         metrics=["NSE", "KGE", "RMSE", "Corr", "PFE", "PTE"],
+        evaluator={"eval_way": "1pace", "pace_idx": -1},
     )
 
 
