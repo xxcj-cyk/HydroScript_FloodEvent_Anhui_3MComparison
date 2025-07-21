@@ -5,7 +5,7 @@ from hydromodel_dl.configs.config import default_config_file, update_cfg, cmd
 from hydromodel_dl.trainers.trainer import train_and_evaluate
 
 
-csv_path = r"./Data/All/anhui18_691.csv"
+csv_path = r"./Data/All/anhui21_797.csv"
 
 
 def load_basin_ids(csv_path):
@@ -14,7 +14,7 @@ def load_basin_ids(csv_path):
 
 
 def dxaj_hydrodataset_args(basin_ids):
-    project_name = os.path.join("Anhui_dPL", "anhui18_691_PET_Anhui_fast")
+    project_name = os.path.join("Anhui_dPL", "anhui21_797_PET_Anhui_fast")
     train_period = ["2024-07-01 00:00:00", "2024-07-31 23:00:00"]
     valid_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
     test_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
@@ -31,7 +31,7 @@ def dxaj_hydrodataset_args(basin_ids):
             "time_unit": ["1h"],
         },
         # 3. 数据集配置
-        dataset="DPLDataset",
+        dataset="FloodEventDataset",
         min_time_unit="h",
         train_period=train_period,
         valid_period=valid_period,
@@ -86,7 +86,7 @@ def dxaj_hydrodataset_args(basin_ids):
             "prm_pc_sse",
             "gla_pc_sse",
         ],
-        var_out=["streamflow"],
+        var_out=["streamflow", "flood_event"],
         n_output=1,
         forecast_history=0,
         forecast_length=240,
@@ -132,7 +132,7 @@ def dxaj_hydrodataset_args(basin_ids):
             "lr_factor": 0.95,
         },
         # 9. 损失函数配置
-        loss_func="RMSE",
+        loss_func="RMSEFlood",
         # 10. 评估配置
         model_loader={"load_way": "best"},
         fill_nan=["no"],

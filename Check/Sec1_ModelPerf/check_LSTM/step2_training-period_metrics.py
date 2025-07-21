@@ -4,7 +4,7 @@ from hydromodel_dl.datasets.data_readers import DATASETS_DIR_CHINA as DATASETS_D
 from hydromodel_dl.configs.config import default_config_file, update_cfg, cmd
 from hydromodel_dl.trainers.trainer import train_and_evaluate
 
-base_project_name = "anhui18_691_PET_Anhui"
+base_project_name = "anhui21_797_PET_Anhui_lr"
 model_name = "Anhui_LSTM"
 csv_path = r"./Data/All/anhui21_797.csv"
 
@@ -40,7 +40,7 @@ def lstm_hydrodataset_args(basin_ids):
             "time_unit": ["1h"],
         },
         # 3. 数据集配置
-        dataset="LSTMDataset",
+        dataset="FloodEventDataset",
         min_time_unit="h",
         train_period=train_period,
         valid_period=valid_period,
@@ -95,7 +95,7 @@ def lstm_hydrodataset_args(basin_ids):
             "prm_pc_sse",
             "gla_pc_sse",
         ],
-        var_out=["streamflow"],
+        var_out=["streamflow", "flood_event"],
         n_output=1,
         forecast_history=0,
         forecast_length=72,
@@ -121,7 +121,7 @@ def lstm_hydrodataset_args(basin_ids):
             "hidden_size": 16,
         },
         # 7. 训练配置
-        train_epoch=50,
+        train_epoch=500,
         save_epoch=1,
         warmup_length=0,
         train_mode=0,
@@ -129,18 +129,17 @@ def lstm_hydrodataset_args(basin_ids):
         # 8. 优化器配置
         opt="Adam",
         opt_param={
-            "lr": 0.005,
+            "lr": 0.0005,
         },
         lr_scheduler={
-            "lr": 0.005,
+            "lr": 0.0005,
             "lr_factor": 0.95,
         },
         # 9. 损失函数配置
-        loss_func="RMSE",
-        # loss_func="Hybrid",
+        loss_func="RMSEFlood",
+        # loss_func="HybridFlood",
         # loss_param={
         #     "mae_weight": 0.5,
-        #     "reduction": "mean",
         # },
         # 10. 评估配置
         model_loader={"load_way": "pth", "pth_path": model_path},

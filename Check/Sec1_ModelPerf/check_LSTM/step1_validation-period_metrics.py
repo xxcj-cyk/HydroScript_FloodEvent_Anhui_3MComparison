@@ -3,9 +3,11 @@ import json
 import glob
 import xarray as xr
 import csv
+import pandas as pd
+import numpy as np
 
 # 定义项目和路径
-base_project_name = "anhui18_691_PET_Anhui"
+base_project_name = "anhui21_797_PET_Anhui_lr"
 model_name = "Anhui_LSTM"
 root_dir = f"./Result/{model_name}/{base_project_name}"
 output_dir = f"./Visualization/Sec1_ModelPerf/{model_name}/{base_project_name}"
@@ -100,17 +102,34 @@ for json_file in json_files:
     with open(csv_file, mode="a", newline="") as file:
         writer = csv.writer(file)
         for basin, metrics in sorted(min_loss_metrics.items()):
-            writer.writerow(
-                [
-                    basin,
-                    metrics["epoch"],
-                    f"{metrics['train_loss']:.3f}",
-                    f"{metrics['validation_loss']:.3f}",
-                    f"{metrics['NSE']:.3f}" if metrics["NSE"] is not None else None,
-                    f"{metrics['KGE']:.3f}" if metrics["KGE"] is not None else None,
-                    f"{metrics['RMSE']:.2f}" if metrics["RMSE"] is not None else None,
-                    f"{metrics['Corr']:.2f}" if metrics["Corr"] is not None else None,
-                    f"{metrics['PFE']:.1f}" if metrics["PFE"] is not None else None,
-                    f"{int(metrics['PTE'])}" if metrics["PTE"] is not None else None,
-                ]
-            )
+            # 准备行数据，处理可能的NaN值
+            row_data = [
+                basin,
+                metrics["epoch"],
+                f"{metrics['train_loss']:.3f}",
+                f"{metrics['validation_loss']:.3f}",
+            ]
+            
+            # 处理可能的NaN值
+            for metric_name, format_spec in [
+                ("NSE", ".3f"), 
+                ("KGE", ".3f"), 
+                ("RMSE", ".2f"), 
+                ("Corr", ".2f"), 
+                ("PFE", ".1f")
+            ]:
+                value = metrics[metric_name]
+                if value is not None and not np.isnan(value):
+                    row_data.append(f"{value:{format_spec}}")
+                else:
+                    row_data.append(None)
+            
+            # 特殊处理PTE，它需要转换为整数
+            pte_value = metrics["PTE"]
+            if pte_value is not None and not np.isnan(pte_value):
+                row_data.append(f"{int(pte_value)}")
+            else:
+                row_data.append(None)
+                
+            # 写入行数据
+            writer.writerow(row_data)
