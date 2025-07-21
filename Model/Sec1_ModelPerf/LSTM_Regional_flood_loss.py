@@ -19,6 +19,8 @@ def lstm_hydrodataset_args(basin_ids):
     valid_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
     test_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
     return cmd(
+        # train_mode=False,
+        # stat_dict_file=r"C:\Programming\hydro_chai\HydroScript_FloodEvent_Anhui_3MComparison\Result\Anhui_LSTM\anhui_flood_loss\dapengscaler_stat.json",
         # 1. 项目和基础配置
         sub=project_name,
         ctx=[2],
@@ -36,7 +38,7 @@ def lstm_hydrodataset_args(basin_ids):
         train_period=train_period,
         valid_period=valid_period,
         test_period=test_period,
-        batch_size=500,
+        batch_size=50,
         # 4. 特征和预测设置
         var_t=[
             "P_Anhui",
@@ -89,7 +91,7 @@ def lstm_hydrodataset_args(basin_ids):
         var_out=["streamflow", "flood_event"],
         n_output=1,
         forecast_history=0,
-        forecast_length=72,
+        forecast_length=48,
         which_first_tensor="sequence",
         target_as_input=0,
         constant_only=0,
@@ -112,28 +114,32 @@ def lstm_hydrodataset_args(basin_ids):
             "hidden_size": 16,
         },
         # 7. 训练配置
-        # train_epoch=50,
-        train_epoch=50,
+        train_epoch=30,
+        # train_epoch=12,
         save_epoch=1,
         warmup_length=0,
         # 8. 优化器配置
         opt="Adam",
         opt_param={
-            "lr": 0.005,
+            "lr": 0.01,
         },
         lr_scheduler={
-            "lr": 0.005,
+            "lr": 0.01,
             "lr_factor": 0.95,
         },
         # 9. 损失函数配置
-        loss_func="HybridFloodloss",
+        loss_func="HybridFlood",
         loss_param={
             "mae_weight": 0.5,  # Weight for MAE loss
         },
         # 10. 评估配置
-        model_loader={"load_way": "best"},
+        model_loader={"load_way": "specified", "test_epoch": 16},
         fill_nan=["no"],
         metrics=["NSE", "KGE", "RMSE", "Corr", "PFE", "PTE"],
+        evaluator={
+            "eval_way": "1pace",
+            "pace_idx": -1,
+        },
     )
 
 
