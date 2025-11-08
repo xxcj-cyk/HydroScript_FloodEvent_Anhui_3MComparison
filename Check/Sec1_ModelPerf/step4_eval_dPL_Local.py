@@ -11,51 +11,51 @@ from hydromodel_dl.trainers.trainer import train_and_evaluate
 
 # 全局配置
 model_name = "Anhui_dPL"
-configuration_name = "_b0100_fl240_lr005_seed1111"
+configuration_name = "_b0500_fl240_lr005_seed1111"
 basin_names = [
-    "anhui_50406910_20",
-    "anhui_50501200_34",
-    "anhui_50701100_41",
-    "anhui_50913900_24",
-    "anhui_51004350_18",
+    # "anhui_50406910_20",
+    # "anhui_50501200_34",
+    # "anhui_50701100_41",
+    # "anhui_50913900_24",
+    # "anhui_51004350_18",
     "anhui_62549024_78",
-    "anhui_62700110_27",
-    "anhui_62700700_38",
-    "anhui_62802400_17",
-    "anhui_62802700_61",
-    "anhui_62803300_87",
-    "anhui_62906900_38",
-    "anhui_62907100_25",
-    "anhui_62907600_15",
-    "anhui_62907601_14",
-    "anhui_62909400_62",
-    "anhui_62911200_43",
-    "anhui_62916110_20",
-    "anhui_70112150_10",
-    "anhui_70114100_33",
+    # "anhui_62700110_27",
+    # "anhui_62700700_38",
+    # "anhui_62802400_17",
+    # "anhui_62802700_61",
+    # "anhui_62803300_87",
+    # "anhui_62906900_38",
+    # "anhui_62907100_25",
+    # "anhui_62907600_15",
+    # "anhui_62907601_14",
+    # "anhui_62909400_62",
+    # "anhui_62911200_43",
+    # "anhui_62916110_20",
+    # "anhui_70112150_10",
+    # "anhui_70114100_33",
 ]
 base_project_name = [f"{basin_name}{configuration_name}" for basin_name in basin_names]
 csv_path = [
-    "./Data/Select/anhui_50406910_20.csv",
-    "./Data/Select/anhui_50501200_34.csv",
-    "./Data/Select/anhui_50701100_41.csv",
-    "./Data/Select/anhui_50913900_24.csv",
-    "./Data/Select/anhui_51004350_18.csv",
+    # "./Data/Select/anhui_50406910_20.csv",
+    # "./Data/Select/anhui_50501200_34.csv",
+    # "./Data/Select/anhui_50701100_41.csv",
+    # "./Data/Select/anhui_50913900_24.csv",
+    # "./Data/Select/anhui_51004350_18.csv",
     "./Data/Select/anhui_62549024_78.csv",
-    "./Data/Select/anhui_62700110_27.csv",
-    "./Data/Select/anhui_62700700_38.csv",
-    "./Data/Select/anhui_62802400_17.csv",
-    "./Data/Select/anhui_62802700_61.csv",
-    "./Data/Select/anhui_62803300_87.csv",
-    "./Data/Select/anhui_62906900_38.csv",
-    "./Data/Select/anhui_62907100_25.csv",
-    "./Data/Select/anhui_62907600_15.csv",
-    "./Data/Select/anhui_62907601_14.csv",
-    "./Data/Select/anhui_62909400_62.csv",
-    "./Data/Select/anhui_62911200_43.csv",
-    "./Data/Select/anhui_62916110_20.csv",
-    "./Data/Select/anhui_70112150_10.csv",
-    "./Data/Select/anhui_70114100_33.csv",
+    # "./Data/Select/anhui_62700110_27.csv",
+    # "./Data/Select/anhui_62700700_38.csv",
+    # "./Data/Select/anhui_62802400_17.csv",
+    # "./Data/Select/anhui_62802700_61.csv",
+    # "./Data/Select/anhui_62803300_87.csv",
+    # "./Data/Select/anhui_62906900_38.csv",
+    # "./Data/Select/anhui_62907100_25.csv",
+    # "./Data/Select/anhui_62907600_15.csv",
+    # "./Data/Select/anhui_62907601_14.csv",
+    # "./Data/Select/anhui_62909400_62.csv",
+    # "./Data/Select/anhui_62911200_43.csv",
+    # "./Data/Select/anhui_62916110_20.csv",
+    # "./Data/Select/anhui_70112150_10.csv",
+    # "./Data/Select/anhui_70114100_33.csv",
 ]
 
 
@@ -198,7 +198,7 @@ def dxaj_hydrodataset_args(basin_ids, current_project_name):
     return cmd(
         # 1. 项目和基础配置
         sub=project_name,
-        ctx=[1],
+        ctx=[2],
         gage_id=basin_ids,
         # 2. 数据源配置
         source_cfgs={
@@ -213,7 +213,7 @@ def dxaj_hydrodataset_args(basin_ids, current_project_name):
         train_period=train_period,
         valid_period=valid_period,
         test_period=test_period,
-        batch_size=100,
+        batch_size=500,
         # 4. 特征和预测设置
         var_t=[
             "p_anhui",
@@ -541,10 +541,10 @@ def main():
 
             # 执行所有步骤
             # step1_extract_validation_metrics(current_project)
-            # step2_run_training_evaluation(current_csv, current_project)
+            step2_run_training_evaluation(current_csv, current_project)
             # step3_merge_training_validation_data(current_project)
             # step4_standardize_data(current_project)
-            step5_merge_final_csvs()
+            # step5_merge_final_csvs()
 
             print(f"项目 {current_project} 处理完成！")
             print(

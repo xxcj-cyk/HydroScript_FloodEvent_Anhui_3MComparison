@@ -14,14 +14,14 @@ def load_basin_ids(csv_path):
 
 
 def dxaj_hydrodataset_args(basin_ids):
-    project_name = os.path.join("Anhui_dPL", "anhui20_705_b0500_fl240_lr005_seed1111")
+    project_name = os.path.join("Anhui_dPL", "anhui20_705_b0500_fl240_lr005_seed2222")
     train_period = ["2024-07-01 00:00:00", "2024-07-31 23:00:00"]
     valid_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
     test_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
     return cmd(
         # 1. 项目和基础配置
         sub=project_name,
-        ctx=[1],
+        ctx=[2],
         gage_id=basin_ids,
         # 2. 数据源配置
         source_cfgs={
@@ -116,7 +116,7 @@ def dxaj_hydrodataset_args(basin_ids):
             "source_type": "sources",
         },
         # 7. 训练配置
-        rs=1111,
+        rs=2222,
         train_epoch=10,
         save_epoch=1,
         warmup_length=240,

@@ -1,33 +1,55 @@
 import os
 import pandas as pd
-import multiprocessing as mp
 from hydromodel_dl.datasets.data_readers import DATASETS_DIR_CHINA as DATASETS_DIR
 from hydromodel_dl.configs.config import default_config_file, update_cfg, cmd
 from hydromodel_dl.trainers.trainer import train_and_evaluate
 
 
 csv_paths = [
-    "./Data/Transfer_new/anhui_50406910_20_without.csv",
-    "./Data/Transfer_new/anhui_50501200_34_without.csv",
-    "./Data/Transfer_new/anhui_50701100_41_without.csv",
-    "./Data/Transfer_new/anhui_50913900_24_without.csv",
-    "./Data/Transfer_new/anhui_51004350_18_without.csv",
-    "./Data/Transfer_new/anhui_62549024_78_without.csv",
-    "./Data/Transfer_new/anhui_62700110_27_without.csv",
-    "./Data/Transfer_new/anhui_62700700_38_without.csv",
-    "./Data/Transfer_new/anhui_62802400_17_without.csv",
-    "./Data/Transfer_new/anhui_62802700_61_without.csv",
-    "./Data/Transfer_new/anhui_62803300_87_without.csv",
-    "./Data/Transfer_new/anhui_62906900_38_without.csv",
-    "./Data/Transfer_new/anhui_62907100_25_without.csv",
-    "./Data/Transfer_new/anhui_62907600_15_without.csv",
-    "./Data/Transfer_new/anhui_62907601_14_without.csv",
-    "./Data/Transfer_new/anhui_62909400_62_without.csv",
-    "./Data/Transfer_new/anhui_62911200_43_without.csv",
-    "./Data/Transfer_new/anhui_62916110_20_without.csv",
-    "./Data/Transfer_new/anhui_70112150_10_without.csv",
-    "./Data/Transfer_new/anhui_70114100_33_without.csv",
+    "./Data/Select/anhui_50406910_20.csv",
+    "./Data/Select/anhui_50501200_34.csv",
+    "./Data/Select/anhui_50701100_41.csv",
+    "./Data/Select/anhui_50913900_24.csv",
+    "./Data/Select/anhui_51004350_18.csv",
+    "./Data/Select/anhui_62549024_78.csv",
+    "./Data/Select/anhui_62700110_27.csv",
+    "./Data/Select/anhui_62700700_38.csv",
+    "./Data/Select/anhui_62802400_17.csv",
+    "./Data/Select/anhui_62802700_61.csv",
+    "./Data/Select/anhui_62803300_87.csv",
+    "./Data/Select/anhui_62906900_38.csv",
+    "./Data/Select/anhui_62907100_25.csv",
+    "./Data/Select/anhui_62907600_15.csv",
+    "./Data/Select/anhui_62907601_14.csv",
+    "./Data/Select/anhui_62909400_62.csv",
+    "./Data/Select/anhui_62911200_43.csv",
+    "./Data/Select/anhui_62916110_20.csv",
+    "./Data/Select/anhui_70112150_10.csv",
+    "./Data/Select/anhui_70114100_33.csv",
 ]
+
+source_maps = {
+    "anhui_50406910_20": "anhui_51004350_18",
+    "anhui_50501200_34": "anhui_62802700_61",
+    "anhui_50701100_41": "anhui_62802700_61",
+    "anhui_50913900_24": "anhui_51004350_18",
+    "anhui_51004350_18": "anhui_62916110_20",
+    "anhui_62549024_78": "anhui_62700110_27",
+    "anhui_62700110_27": "anhui_62909400_62",
+    "anhui_62700700_38": "anhui_62907601_14",
+    "anhui_62802400_17": "anhui_62700110_27",
+    "anhui_62802700_61": "anhui_50501200_34",
+    "anhui_62803300_87": "anhui_50501200_34",
+    "anhui_62906900_38": "anhui_62907100_25",
+    "anhui_62907100_25": "anhui_62906900_38",
+    "anhui_62907600_15": "anhui_62907601_14",
+    "anhui_62907601_14": "anhui_62907600_15",
+    "anhui_62909400_62": "anhui_62700110_27",
+    "anhui_62911200_43": "anhui_62700110_27",
+    "anhui_62916110_20": "anhui_51004350_18",
+    "anhui_70112150_10": "anhui_70114100_33",
+    "anhui_70114100_33": "anhui_70112150_10"
+}
 
 
 def load_basin_ids(csv_path):
@@ -35,16 +57,17 @@ def load_basin_ids(csv_path):
     return basin_data["basin"].tolist()
 
 
-def get_project_name(csv_path):
-    basename = os.path.basename(csv_path)
-    filename = os.path.splitext(basename)[0]
-    return os.path.join("Anhui_LSTM", f"{filename}_b05_fl72_lr0005_seed1111")
-
-
-def lstm_hydrodataset_args(basin_ids, project_name):
+def lstm_hydrodataset_args(basin_ids, filename, source_basin):
+    project_name = os.path.join("Anhui_LSTM_TL", f"{filename}_b05_fl72_lr0005_seed1111_tl_weight")
     train_period = ["2024-07-01 00:00:00", "2024-07-31 23:00:00"]
     valid_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
     test_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
+    trained_weight_path = (
+        f"Result/Sec1_ModelPerf/Anhui_LSTM/b05_fl72_lr0005_seed1111/{source_basin}_b05_fl72_lr0005_rs1111/best_model.pth"
+    )
+    # stat_file_path = (
+    #     f"Result/Sec1_ModelPerf/Anhui_LSTM/b05_fl72_lr0005_seed1111/{source_basin}_b05_fl72_lr0005_rs1111/dapengscaler_stat.json"
+    # )
     return cmd(
         # 1. 项目和基础配置
         sub=project_name,
@@ -137,6 +160,10 @@ def lstm_hydrodataset_args(basin_ids, project_name):
             "hidden_size": 16,
         },
         # 7. 训练配置
+        train_mode=True,
+        continue_train=True,
+        weight_path=trained_weight_path,
+        # stat_dict_file=stat_file_path,
         rs=1111,
         train_epoch=50,
         save_epoch=1,
@@ -163,29 +190,21 @@ def lstm_hydrodataset_args(basin_ids, project_name):
     )
 
 
-def run_single_lstm_exp(csv_path):
-    print(f"开始处理: {csv_path}")
-    cfg = default_config_file()
-    basin_ids = load_basin_ids(csv_path)
-    project_name = get_project_name(csv_path)
-    args_ = lstm_hydrodataset_args(basin_ids, project_name)
-    update_cfg(cfg, args_)
-    train_and_evaluate(cfg)
-    print(f"完成处理: {csv_path}")
-    return True
+def run_lstm_exp(csv_paths):
+    for csv_path in csv_paths:
+        cfg = default_config_file()
+        basin_ids = load_basin_ids(csv_path)
+        filename = os.path.splitext(os.path.basename(csv_path))[0]
+        
+        # 根据source_maps获取源流域
+        source_basin = source_maps.get(filename, filename)  # 如果没有映射，则使用自身
+        
+        print(f"Target basin: {filename} -> Source basin: {source_basin}")
+        
+        args_ = lstm_hydrodataset_args(basin_ids, filename, source_basin)
+        update_cfg(cfg, args_)
+        train_and_evaluate(cfg)
+    print("All processes are finished!")
 
 
-def run_parallel_lstm_exp(csv_paths, num_processes=4):
-    print(f"开始并行处理 {len(csv_paths)} 个流域，使用 {num_processes} 个进程")
-    pool = mp.Pool(processes=num_processes)
-    results = pool.map(run_single_lstm_exp, csv_paths)
-    pool.close()
-    pool.join()
-    success_count = sum(results)
-    failed_count = len(results) - success_count
-    print(f"所有任务已完成！成功: {success_count}, 失败: {failed_count}")
-
-
-if __name__ == "__main__":
-    num_processes = 5
-    run_parallel_lstm_exp(csv_paths, num_processes)
+run_lstm_exp(csv_paths)

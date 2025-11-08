@@ -34,22 +34,22 @@ def load_basin_ids(csv_path):
     return basin_data["basin"].tolist()
 
 
-def dxaj_hydrodataset_args(basin_ids, filename):
-    project_name = os.path.join("Anhui_dPL_T", f"{filename}_b0500_fl240_lr005_seed1111_t_both_train")
+def lstm_hydrodataset_args(basin_ids, filename):
+    project_name = os.path.join("Anhui_LSTM_T", f"{filename}_b05_fl72_lr0005_seed1111_t_both")
     train_period = ["2024-07-01 00:00:00", "2024-07-31 23:00:00"]
     valid_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
-    # test_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
-    test_period = ["2024-07-01 00:00:00", "2024-07-31 23:00:00"]
+    test_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
+    # test_period = ["2024-07-01 00:00:00", "2024-07-31 23:00:00"]
     trained_weight_path = (
-        f"Result/Anhui_dPL_T/{filename}_b0500_fl240_lr005_seed1111_t_both_train/best_model.pth"
+        f"Result/Anhui_LSTM_T/{filename}_b05_fl72_lr0005_seed1111_t_both/best_model.pth"
     )
     stat_file_path = (
-        f"Result/Anhui_dPL_T/{filename}_b0500_fl240_lr005_seed1111_t_both_train/dapengscaler_stat.json"
+        f"Result/Anhui_LSTM_T/{filename}_b05_fl72_lr0005_seed1111_t_both/dapengscaler_stat.json"
     )
     return cmd(
         # 1. 项目和基础配置
         sub=project_name,
-        ctx=[1],
+        ctx=[2],
         gage_id=basin_ids,
         # 2. 数据源配置
         source_cfgs={
@@ -59,12 +59,12 @@ def dxaj_hydrodataset_args(basin_ids, filename):
             "time_unit": ["1h"],
         },
         # 3. 数据集配置
-        dataset="FloodEventDplDataset",
+        dataset="FloodEventDataset",
         min_time_unit="h",
         train_period=train_period,
         valid_period=valid_period,
         test_period=test_period,
-        batch_size=500,
+        batch_size=5,
         # 4. 特征和预测设置
         var_t=[
             "p_anhui",
@@ -115,7 +115,7 @@ def dxaj_hydrodataset_args(basin_ids, filename):
         var_out=["streamflow", "flood_event"],
         n_output=1,
         forecast_history=0,
-        forecast_length=240,
+        forecast_length=72,
         which_first_tensor="sequence",
         target_as_input=0,
         constant_only=0,
@@ -128,20 +128,14 @@ def dxaj_hydrodataset_args(basin_ids, filename):
             "gamma_norm_cols": [
                 "p_anhui",
             ],
-            "pbm_norm": True,
+            "pbm_norm": False,
         },
         # 6. 模型配置
-        model_name="DplLstmXaj",
+        model_name="SimpleLSTM",
         model_hyperparam={
-            "n_input_features": 42,
-            "n_output_features": 15,
-            "n_hidden_states": 16,
-            "kernel_size": 15,
-            "warmup_length": 240,
-            "param_limit_func": "clamp",
-            "param_test_way": "final",
-            "source_book": "HF",
-            "source_type": "sources",
+            "input_size": 42,
+            "output_size": 1,
+            "hidden_size": 16,
         },
         # 7. 训练配置
         train_mode=False,
@@ -149,16 +143,16 @@ def dxaj_hydrodataset_args(basin_ids, filename):
         weight_path=trained_weight_path,
         stat_dict_file=stat_file_path,
         rs=1111,
-        train_epoch=10,
+        train_epoch=50,
         save_epoch=1,
-        warmup_length=240,
+        warmup_length=0,
         # 8. 优化器配置
         opt="Adam",
         opt_param={
-            "lr": 0.005,
+            "lr": 0.0005,
         },
         lr_scheduler={
-            "lr": 0.005,
+            "lr": 0.0005,
             "lr_factor": 0.95,
         },
         # 9. 损失函数配置
@@ -167,19 +161,22 @@ def dxaj_hydrodataset_args(basin_ids, filename):
         model_loader={"load_way": "best"},
         fill_nan=["no"],
         metrics=["NSE", "KGE", "RMSE", "Corr", "PFE", "PTE"],
-        evaluator={"eval_way": "1pace", "pace_idx": -1},
+        evaluator={
+            "eval_way": "1pace",
+            "pace_idx": -1,
+        },
     )
 
 
-def run_dpl_exp(csv_paths):
+def run_lstm_exp(csv_path):
     for csv_path in csv_paths:
         cfg = default_config_file()
         basin_ids = load_basin_ids(csv_path)
         filename = os.path.splitext(os.path.basename(csv_path))[0]
-        args_ = dxaj_hydrodataset_args(basin_ids, filename)
+        args_ = lstm_hydrodataset_args(basin_ids, filename)
         update_cfg(cfg, args_)
         train_and_evaluate(cfg)
     print("All processes are finished!")
 
 
-run_dpl_exp(csv_paths)
+run_lstm_exp(csv_paths)

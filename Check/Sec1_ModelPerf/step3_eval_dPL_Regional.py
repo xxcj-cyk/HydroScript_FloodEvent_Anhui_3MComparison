@@ -12,7 +12,7 @@ from hydromodel_dl.trainers.trainer import train_and_evaluate
 # 全局配置
 model_name = "Anhui_dPL"
 base_project_name = [
-    "anhui20_705",
+    "anhui20_705_b0500_fl240_lr005_seed2222",
 ]
 csv_path = [
     "./Data/Select/anhui20_705.csv",
@@ -171,7 +171,7 @@ def dxaj_hydrodataset_args(basin_ids, current_project_name):
     return cmd(
         # 1. 项目和基础配置
         sub=project_name,
-        ctx=[1],
+        ctx=[2],
         gage_id=basin_ids,
         # 2. 数据源配置
         source_cfgs={

@@ -1,32 +1,31 @@
 import os
 import pandas as pd
-import multiprocessing as mp
 from hydromodel_dl.datasets.data_readers import DATASETS_DIR_CHINA as DATASETS_DIR
 from hydromodel_dl.configs.config import default_config_file, update_cfg, cmd
 from hydromodel_dl.trainers.trainer import train_and_evaluate
 
 
 csv_paths = [
-    "./Data/Transfer_new/anhui_50406910_20_without.csv",
-    "./Data/Transfer_new/anhui_50501200_34_without.csv",
-    "./Data/Transfer_new/anhui_50701100_41_without.csv",
-    "./Data/Transfer_new/anhui_50913900_24_without.csv",
-    "./Data/Transfer_new/anhui_51004350_18_without.csv",
-    "./Data/Transfer_new/anhui_62549024_78_without.csv",
-    "./Data/Transfer_new/anhui_62700110_27_without.csv",
-    "./Data/Transfer_new/anhui_62700700_38_without.csv",
-    "./Data/Transfer_new/anhui_62802400_17_without.csv",
-    "./Data/Transfer_new/anhui_62802700_61_without.csv",
-    "./Data/Transfer_new/anhui_62803300_87_without.csv",
-    "./Data/Transfer_new/anhui_62906900_38_without.csv",
-    "./Data/Transfer_new/anhui_62907100_25_without.csv",
-    "./Data/Transfer_new/anhui_62907600_15_without.csv",
-    "./Data/Transfer_new/anhui_62907601_14_without.csv",
-    "./Data/Transfer_new/anhui_62909400_62_without.csv",
-    "./Data/Transfer_new/anhui_62911200_43_without.csv",
-    "./Data/Transfer_new/anhui_62916110_20_without.csv",
-    "./Data/Transfer_new/anhui_70112150_10_without.csv",
-    "./Data/Transfer_new/anhui_70114100_33_without.csv",
+    "./Data/Select/anhui_50406910_20.csv",
+    "./Data/Select/anhui_50501200_34.csv",
+    "./Data/Select/anhui_50701100_41.csv",
+    "./Data/Select/anhui_50913900_24.csv",
+    "./Data/Select/anhui_51004350_18.csv",
+    "./Data/Select/anhui_62549024_78.csv",
+    "./Data/Select/anhui_62700110_27.csv",
+    "./Data/Select/anhui_62700700_38.csv",
+    "./Data/Select/anhui_62802400_17.csv",
+    "./Data/Select/anhui_62802700_61.csv",
+    "./Data/Select/anhui_62803300_87.csv",
+    "./Data/Select/anhui_62906900_38.csv",
+    "./Data/Select/anhui_62907100_25.csv",
+    "./Data/Select/anhui_62907600_15.csv",
+    "./Data/Select/anhui_62907601_14.csv",
+    "./Data/Select/anhui_62909400_62.csv",
+    "./Data/Select/anhui_62911200_43.csv",
+    "./Data/Select/anhui_62916110_20.csv",
+    "./Data/Select/anhui_70112150_10.csv",
+    "./Data/Select/anhui_70114100_33.csv",
 ]
 
 
@@ -35,17 +34,17 @@ def load_basin_ids(csv_path):
     return basin_data["basin"].tolist()
 
 
-def get_project_name(csv_path):
-    basename = os.path.basename(csv_path)
-    filename = os.path.splitext(basename)[0]
-    # 创建项目名称
-    return os.path.join("Anhui_dPL", f"{filename}_b0500_fl240_lr005_seed1111")
-
-
-def dxaj_hydrodataset_args(basin_ids, project_name):
+def lstm_hydrodataset_args(basin_ids, filename):
+    project_name = os.path.join("Anhui_LSTM_TL", f"{filename}_b05_fl72_lr0005_seed1111_tl_weight")
     train_period = ["2024-07-01 00:00:00", "2024-07-31 23:00:00"]
     valid_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
     test_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
+    trained_weight_path = (
+        f"Result/Sec2_ParamTrans/Train/Anhui_LSTM/{filename}_without_b05_fl72_lr0005_seed1111/best_model.pth"
+    )
+    # stat_file_path = (
+    #     f"Result/Sec2_ParamTrans/Train/Anhui_LSTM/{filename}_without_b05_fl72_lr0005_seed1111/dapengscaler_stat.json"
+    # )
     return cmd(
         # 1. 项目和基础配置
         sub=project_name,
@@ -59,12 +58,12 @@ def dxaj_hydrodataset_args(basin_ids, project_name):
             "time_unit": ["1h"],
         },
         # 3. 数据集配置
-        dataset="FloodEventDplDataset",
+        dataset="FloodEventDataset",
         min_time_unit="h",
         train_period=train_period,
         valid_period=valid_period,
         test_period=test_period,
-        batch_size=500,
+        batch_size=5,
         # 4. 特征和预测设置
         var_t=[
             "p_anhui",
@@ -115,7 +114,7 @@ def dxaj_hydrodataset_args(basin_ids, project_name):
         var_out=["streamflow", "flood_event"],
         n_output=1,
         forecast_history=0,
-        forecast_length=240,
+        forecast_length=72,
         which_first_tensor="sequence",
         target_as_input=0,
         constant_only=0,
@@ -128,33 +127,31 @@ def dxaj_hydrodataset_args(basin_ids, project_name):
             "gamma_norm_cols": [
                 "p_anhui",
             ],
-            "pbm_norm": True,
+            "pbm_norm": False,
         },
         # 6. 模型配置
-        model_name="DplLstmXaj",
+        model_name="SimpleLSTM",
         model_hyperparam={
-            "n_input_features": 42,
-            "n_output_features": 15,
-            "n_hidden_states": 16,
-            "kernel_size": 15,
-            "warmup_length": 240,
-            "param_limit_func": "clamp",
-            "param_test_way": "final",
-            "source_book": "HF",
-            "source_type": "sources",
+            "input_size": 42,
+            "output_size": 1,
+            "hidden_size": 16,
         },
         # 7. 训练配置
+        train_mode=True,
+        continue_train=True,
+        weight_path=trained_weight_path,
+        # stat_dict_file=stat_file_path,
         rs=1111,
-        train_epoch=10,
+        train_epoch=50,
         save_epoch=1,
-        warmup_length=240,
+        warmup_length=0,
         # 8. 优化器配置
         opt="Adam",
         opt_param={
-            "lr": 0.005,
+            "lr": 0.0005,
         },
         lr_scheduler={
-            "lr": 0.005,
+            "lr": 0.0005,
             "lr_factor": 0.95,
         },
         # 9. 损失函数配置
@@ -163,33 +160,22 @@ def dxaj_hydrodataset_args(basin_ids, project_name):
         model_loader={"load_way": "best"},
         fill_nan=["no"],
         metrics=["NSE", "KGE", "RMSE", "Corr", "PFE", "PTE"],
-        evaluator={"eval_way": "1pace", "pace_idx": -1},
+        evaluator={
+            "eval_way": "1pace",
+            "pace_idx": -1,
+        },
     )
 
 
-def run_single_dpl_exp(csv_path):
-    print(f"开始处理: {csv_path}")
-    cfg = default_config_file()
-    basin_ids = load_basin_ids(csv_path)
-    project_name = get_project_name(csv_path)
-    args_ = dxaj_hydrodataset_args(basin_ids, project_name)
-    update_cfg(cfg, args_)
-    train_and_evaluate(cfg)
-    print(f"完成处理: {csv_path}")
-    return True
+def run_lstm_exp(csv_path):
+    for csv_path in csv_paths:
+        cfg = default_config_file()
+        basin_ids = load_basin_ids(csv_path)
+        filename = os.path.splitext(os.path.basename(csv_path))[0]
+        args_ = lstm_hydrodataset_args(basin_ids, filename)
+        update_cfg(cfg, args_)
+        train_and_evaluate(cfg)
+    print("All processes are finished!")
 
 
-def run_parallel_dpl_exp(csv_paths, num_processes=4):
-    print(f"开始并行处理 {len(csv_paths)} 个流域，使用 {num_processes} 个进程")
-    pool = mp.Pool(processes=num_processes)
-    results = pool.map(run_single_dpl_exp, csv_paths)
-    pool.close()
-    pool.join()
-    success_count = sum(results)
-    failed_count = len(results) - success_count
-    print(f"所有任务已完成！成功: {success_count}, 失败: {failed_count}")
-
-
-if __name__ == "__main__":
-    num_processes = 4
-    run_parallel_dpl_exp(csv_paths, num_processes)
+run_lstm_exp(csv_paths)

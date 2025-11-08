@@ -35,20 +35,21 @@ def load_basin_ids(csv_path):
 
 
 def lstm_hydrodataset_args(basin_ids, filename):
-    project_name = os.path.join("Anhui_LSTM_TL", f"{filename}_b05_fl72_lr0005_seed1111_tl_both")
+    project_name = os.path.join("Anhui_LSTM_T", f"{filename}_b05_fl72_lr0005_seed1111_t_both_train")
     train_period = ["2024-07-01 00:00:00", "2024-07-31 23:00:00"]
     valid_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
-    test_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
+    # test_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
+    test_period = ["2024-07-01 00:00:00", "2024-07-31 23:00:00"]
     trained_weight_path = (
-        f"Result/Sec2_ParamTrans/Train/Anhui_LSTM/{filename}_without_b05_fl72_lr0005_seed1111/best_model.pth"
+        f"Result/Anhui_LSTM_T/{filename}_b05_fl72_lr0005_seed1111_t_both/best_model.pth"
     )
     stat_file_path = (
-        f"Result/Sec2_ParamTrans/Train/Anhui_LSTM/{filename}_without_b05_fl72_lr0005_seed1111/dapengscaler_stat.json"
+        f"Result/Anhui_LSTM_T/{filename}_b05_fl72_lr0005_seed1111_t_both/dapengscaler_stat.json"
     )
     return cmd(
         # 1. 项目和基础配置
         sub=project_name,
-        ctx=[1],
+        ctx=[2],
         gage_id=basin_ids,
         # 2. 数据源配置
         source_cfgs={
@@ -137,8 +138,8 @@ def lstm_hydrodataset_args(basin_ids, filename):
             "hidden_size": 16,
         },
         # 7. 训练配置
-        train_mode=True,
-        continue_train=True,
+        train_mode=False,
+        continue_train=False,
         weight_path=trained_weight_path,
         stat_dict_file=stat_file_path,
         rs=1111,

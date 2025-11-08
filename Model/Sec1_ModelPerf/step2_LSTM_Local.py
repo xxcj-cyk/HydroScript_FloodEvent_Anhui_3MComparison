@@ -7,26 +7,26 @@ from hydromodel_dl.trainers.trainer import train_and_evaluate
 
 
 csv_paths = [
-    "./Data/Select/anhui_50406910_20.csv",
-    "./Data/Select/anhui_50501200_34.csv",
-    "./Data/Select/anhui_50701100_41.csv",
-    "./Data/Select/anhui_50913900_24.csv",
-    "./Data/Select/anhui_51004350_18.csv",
-    "./Data/Select/anhui_62549024_78.csv",
-    "./Data/Select/anhui_62700110_27.csv",
-    "./Data/Select/anhui_62700700_38.csv",
-    "./Data/Select/anhui_62802400_17.csv",
-    "./Data/Select/anhui_62802700_61.csv",
-    "./Data/Select/anhui_62803300_87.csv",
-    "./Data/Select/anhui_62906900_38.csv",
-    "./Data/Select/anhui_62907100_25.csv",
-    "./Data/Select/anhui_62907600_15.csv",
-    "./Data/Select/anhui_62907601_14.csv",
-    "./Data/Select/anhui_62909400_62.csv",
-    "./Data/Select/anhui_62911200_43.csv",
-    "./Data/Select/anhui_62916110_20.csv",
+    # "./Data/Select/anhui_50406910_20.csv",
+    # "./Data/Select/anhui_50501200_34.csv",
+    # "./Data/Select/anhui_50701100_41.csv",
+    # "./Data/Select/anhui_50913900_24.csv",
+    # "./Data/Select/anhui_51004350_18.csv",
+    # "./Data/Select/anhui_62549024_78.csv",
+    # "./Data/Select/anhui_62700110_27.csv",
+    # "./Data/Select/anhui_62700700_38.csv",
+    # "./Data/Select/anhui_62802400_17.csv",
+    # "./Data/Select/anhui_62802700_61.csv",
+    # "./Data/Select/anhui_62803300_87.csv",
+    # "./Data/Select/anhui_62906900_38.csv",
+    # "./Data/Select/anhui_62907100_25.csv",
+    # "./Data/Select/anhui_62907600_15.csv",
+    # "./Data/Select/anhui_62907601_14.csv",
+    # "./Data/Select/anhui_62909400_62.csv",
+    # "./Data/Select/anhui_62911200_43.csv",
+    # "./Data/Select/anhui_62916110_20.csv",
     "./Data/Select/anhui_70112150_10.csv",
-    "./Data/Select/anhui_70114100_33.csv",
+    # "./Data/Select/anhui_70114100_33.csv",
 ]
 
 
@@ -48,7 +48,7 @@ def lstm_hydrodataset_args(basin_ids, project_name):
     return cmd(
         # 1. 项目和基础配置
         sub=project_name,
-        ctx=[1],
+        ctx=[2],
         gage_id=basin_ids,
         # 2. 数据源配置
         source_cfgs={

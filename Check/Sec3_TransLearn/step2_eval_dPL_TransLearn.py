@@ -5,14 +5,13 @@ import xarray as xr
 import pandas as pd
 import numpy as np
 import csv
-import math
 from hydrodata_china.settings.datasets_dir import DATASETS_DIR
 from hydromodel_dl.configs.config import default_config_file, update_cfg, cmd
 from hydromodel_dl.trainers.trainer import train_and_evaluate
 
 # 全局配置
-model_name = "Anhui_LSTM_TL"
-configuration_name = "_b05_fl72_lr0005_seed1111_tl_both"
+model_name = "Anhui_dPL_TL"
+configuration_name = "_b0500_fl240_lr005_seed1111_tl_both_b0500"
 basin_names = [
     "anhui_50406910_20",
     "anhui_50501200_34",
@@ -110,7 +109,7 @@ def step1_extract_validation_metrics(current_project_name):
         with open(json_file, "r") as f:
             data = json.load(f)
 
-        # 初始化每个流域的最小验证损失跟踪
+        # 初始化每个流域的最小验证损失和相应指标跟踪
         min_loss_metrics = {
             basin: {
                 "epoch": 0,
@@ -135,7 +134,7 @@ def step1_extract_validation_metrics(current_project_name):
             validation_loss_str = run["validation_loss"]
             validation_loss = float(
                 validation_loss_str.split("(")[1].split(",")[0]
-            )  # 检查每个流域在此epoch的指标
+            )   # 检查每个流域在此epoch的指标
             for i, basin in enumerate(basin_ids):
                 nse = run["validation_metric"]["NSE of streamflow"][i]
                 kge = run["validation_metric"]["KGE of streamflow"][i]
@@ -144,7 +143,7 @@ def step1_extract_validation_metrics(current_project_name):
                 pfe = run["validation_metric"]["PFE of streamflow"][i]
                 pte = run["validation_metric"]["PTE of streamflow"][i]
 
-                # 如果此epoch的验证损失是迄今为止最小的，更新指标
+                # 如果此epoch的验证损失是目前为止最小的，则更新指标
                 if validation_loss < min_loss_metrics[basin]["validation_loss"]:
                     min_loss_metrics[basin].update(
                         {
@@ -172,36 +171,18 @@ def step1_extract_validation_metrics(current_project_name):
                         f"{metrics['validation_loss']:.3f}",
                         f"{metrics['NSE']:.3f}" if metrics["NSE"] is not None else None,
                         f"{metrics['KGE']:.3f}" if metrics["KGE"] is not None else None,
-                        (
-                            f"{metrics['RMSE']:.2f}"
-                            if metrics["RMSE"] is not None
-                            else None
-                        ),
-                        (
-                            f"{metrics['Corr']:.2f}"
-                            if metrics["Corr"] is not None
-                            else None
-                        ),
-                        (
-                            f"{metrics['PFE']:.1f}"
-                            if metrics["PFE"] is not None
-                            and not math.isnan(metrics["PFE"])
-                            else None
-                        ),
-                        (
-                            f"{int(metrics['PTE'])}"
-                            if metrics["PTE"] is not None
-                            and not math.isnan(metrics["PTE"])
-                            else None
-                        ),
+                        f"{metrics['RMSE']:.2f}" if metrics["RMSE"] is not None else None,
+                        f"{metrics['Corr']:.2f}" if metrics["Corr"] is not None else None,
+                        f"{metrics['PFE']:.1f}" if metrics["PFE"] is not None else None,
+                        f"{int(metrics['PTE'])}" if metrics["PTE"] is not None and not pd.isna(metrics["PTE"]) else None,
                     ]
                 )
 
     print(f"验证期指标已保存到: {csv_file}")
 
 
-def lstm_hydrodataset_args(basin_ids, current_project_name):
-    """配置LSTM水文数据集参数"""
+def dxaj_hydrodataset_args(basin_ids, current_project_name):
+    """配置dXAJ水文数据集参数"""
     project_name = os.path.join(model_name, f"{current_project_name}_train")
     train_period = ["2024-07-01 00:00:00", "2024-07-31 23:00:00"]
     valid_period = ["2024-08-01 00:00:00", "2024-08-31 23:00:00"]
@@ -217,7 +198,7 @@ def lstm_hydrodataset_args(basin_ids, current_project_name):
     return cmd(
         # 1. 项目和基础配置
         sub=project_name,
-        ctx=[1],
+        ctx=[2],
         gage_id=basin_ids,
         # 2. 数据源配置
         source_cfgs={
@@ -227,12 +208,12 @@ def lstm_hydrodataset_args(basin_ids, current_project_name):
             "time_unit": ["1h"],
         },
         # 3. 数据集配置
-        dataset="FloodEventDataset",
+        dataset="FloodEventDplDataset",
         min_time_unit="h",
         train_period=train_period,
         valid_period=valid_period,
         test_period=test_period,
-        batch_size=5,
+        batch_size=500,
         # 4. 特征和预测设置
         var_t=[
             "p_anhui",
@@ -283,7 +264,7 @@ def lstm_hydrodataset_args(basin_ids, current_project_name):
         var_out=["streamflow", "flood_event"],
         n_output=1,
         forecast_history=0,
-        forecast_length=72,
+        forecast_length=240,
         which_first_tensor="sequence",
         target_as_input=0,
         constant_only=0,
@@ -296,29 +277,35 @@ def lstm_hydrodataset_args(basin_ids, current_project_name):
             "gamma_norm_cols": [
                 "p_anhui",
             ],
-            "pbm_norm": False,
+            "pbm_norm": True,
         },
         # 6. 模型配置
-        model_name="SimpleLSTM",
+        model_name="DplLstmXaj",
+        model_type="Normal",
         model_hyperparam={
-            "input_size": 42,
-            "output_size": 1,
-            "hidden_size": 16,
+            "n_input_features": 42,
+            "n_output_features": 15,
+            "n_hidden_states": 16,
+            "kernel_size": 15,
+            "warmup_length": 240,
+            "param_limit_func": "clamp",
+            "param_test_way": "final",
+            "source_book": "HF",
+            "source_type": "sources",
         },
         # 7. 训练配置
-        rs=1111,
-        train_epoch=50,
+        train_epoch=20,
         save_epoch=1,
-        warmup_length=0,
+        warmup_length=240,
         train_mode=0,
         stat_dict_file=stat_file_path,
         # 8. 优化器配置
         opt="Adam",
         opt_param={
-            "lr": 0.0005,
+            "lr": 0.005,
         },
         lr_scheduler={
-            "lr": 0.0005,
+            "lr": 0.005,
             "lr_factor": 0.95,
         },
         # 9. 损失函数配置
@@ -327,10 +314,7 @@ def lstm_hydrodataset_args(basin_ids, current_project_name):
         model_loader={"load_way": "pth", "pth_path": model_path},
         fill_nan=["no"],
         metrics=["NSE", "KGE", "RMSE", "Corr", "PFE", "PTE"],
-        evaluator={
-            "eval_way": "1pace",
-            "pace_idx": -1,
-        },
+        evaluator={"eval_way": "1pace", "pace_idx": -1},
     )
 
 
@@ -340,7 +324,7 @@ def step2_run_training_evaluation(current_csv_path, current_project_name):
 
     cfg = default_config_file()
     basin_ids = load_basin_ids(current_csv_path)
-    args_ = lstm_hydrodataset_args(basin_ids, current_project_name)
+    args_ = dxaj_hydrodataset_args(basin_ids, current_project_name)
     update_cfg(cfg, args_)
     train_and_evaluate(cfg)
     print("训练期评估完成!")
@@ -368,8 +352,6 @@ def step3_merge_training_validation_data(current_project_name):
         nc_file = os.path.join(root_dir, "epoch_best_model.pth_flow_pred.nc")
         if os.path.isfile(nc_file):
             nc_data = xr.open_dataset(nc_file)
-
-            # 假设'basin'是给出流域顺序的坐标或变量
             basin_order = nc_data["basin"].values
             nc_data.close()
 
@@ -391,7 +373,7 @@ def step3_merge_training_validation_data(current_project_name):
                 inplace=True,
             )
 
-            # 将指定列四舍五入以匹配step1格式
+            # 四舍五入指定列，匹配step1格式
             # NSE和KGE: 3位小数
             for col in ["NSE_Train", "KGE_Train"]:
                 train_combined_df[col] = train_combined_df[col].round(3)
@@ -401,71 +383,70 @@ def step3_merge_training_validation_data(current_project_name):
             # PFE: 1位小数
             train_combined_df["PFE_Train"] = train_combined_df["PFE_Train"].round(1)
             # PTE: 整数（安全处理NA值）
-            train_combined_df["PTE_Train"] = (
-                train_combined_df["PTE_Train"].fillna(0).round(0)
-            )
-            train_combined_df["PTE_Train"] = train_combined_df["PTE_Train"].astype(
-                int, errors="ignore"
-            )
+            train_combined_df["PTE_Train"] = train_combined_df["PTE_Train"].fillna(0).round(0)
+            train_combined_df["PTE_Train"] = train_combined_df["PTE_Train"].astype(int, errors='ignore')
 
             # 按Basin_ID排序
             train_combined_df.sort_values(by="Basin_ID", inplace=True)
 
             # 保存训练数据到CSV
             train_combined_df.to_csv(output_csv, index=False)
-            print(f"训练数据已保存到 {output_csv}")
+            print(f"训练数据已保存到: {output_csv}")
         else:
             print("未找到用于流域顺序的NC文件。")
+            return
     else:
         print("未找到训练指标文件。")
+        return
 
     # 检查验证文件是否存在并合并
     if not os.path.isfile(valid_csv):
         print("未找到验证数据文件，合并过程结束。")
-    else:
-        # 读取验证数据
-        valid_df = pd.read_csv(valid_csv)
+        return
+    
+    # 读取验证数据
+    valid_df = pd.read_csv(valid_csv)
 
-        # 在Basin_ID上合并训练和验证数据
-        merged_df = pd.merge(train_combined_df, valid_df, on="Basin_ID", how="inner")
+    # 在Basin_ID上合并训练和验证数据
+    merged_df = pd.merge(train_combined_df, valid_df, on="Basin_ID", how="inner")
 
-        # 设置期望的列顺序
-        desired_columns_order = [
-            "Basin_ID",
-            "Train_Loss",
-            "Validation_Loss",
-            "Epoch",
-            "NSE_Train",
-            "NSE_Validation",
-            "KGE_Train",
-            "KGE_Validation",
-            "RMSE_Train",
-            "RMSE_Validation",
-            "Corr_Train",
-            "Corr_Validation",
-            "PFE_Train",
-            "PFE_Validation",
-            "PTE_Train",
-            "PTE_Validation",
-        ]
-        merged_df = merged_df[desired_columns_order]
+    # 设置期望的列顺序
+    desired_columns_order = [
+        "Basin_ID",
+        "Train_Loss",
+        "Validation_Loss",
+        "Epoch",
+        "NSE_Train",
+        "NSE_Validation",
+        "KGE_Train",
+        "KGE_Validation",
+        "RMSE_Train",
+        "RMSE_Validation",
+        "Corr_Train",
+        "Corr_Validation",
+        "PFE_Train",
+        "PFE_Validation",
+        "PTE_Train",
+        "PTE_Validation",
+    ]
+    merged_df = merged_df[[col for col in desired_columns_order if col in merged_df.columns]]
 
-        # 保存合并数据到CSV，使用正确的数字格式
-        for col in merged_df.columns:
-            if "NSE" in col or "KGE" in col:
-                merged_df[col] = merged_df[col].round(3)
-            elif "RMSE" in col or "Corr" in col:
-                merged_df[col] = merged_df[col].round(2)
-            elif "PFE" in col:
-                merged_df[col] = merged_df[col].round(1)
-            elif "PTE" in col:
-                # 安全处理可能存在的NA值
-                merged_df[col] = merged_df[col].fillna(0).round(0)
-                merged_df[col] = merged_df[col].astype(int, errors="ignore")
-
-        # 保存到CSV
-        merged_df.to_csv(combined_csv, index=False)
-        print(f"训练和验证数据已合并并保存到 {combined_csv}")
+    # 保存合并数据到CSV，并正确格式化数字
+    for col in merged_df.columns:
+        if "NSE" in col or "KGE" in col:
+            merged_df[col] = merged_df[col].round(3)
+        elif "RMSE" in col or "Corr" in col:
+            merged_df[col] = merged_df[col].round(2)
+        elif "PFE" in col:
+            merged_df[col] = merged_df[col].round(1)
+        elif "PTE" in col:
+            # 安全处理可能存在的NA值
+            merged_df[col] = merged_df[col].fillna(0).round(0)
+            merged_df[col] = merged_df[col].astype(int, errors='ignore')
+    
+    # 保存到CSV
+    merged_df.to_csv(combined_csv, index=False)
+    print(f"训练和验证数据已合并并保存到: {combined_csv}")
 
 
 def step4_standardize_data(current_project_name):
@@ -545,7 +526,7 @@ def step5_merge_final_csvs():
 
 def main():
     """主函数：执行完整的评估流水线"""
-    print("开始执行LSTM模型性能评估流水线...")
+    print("开始执行dXAJ模型性能评估流水线...")
     print(f"项目列表: {base_project_name}")
     print(f"模型名称: {model_name}")
     print("-" * 50)
@@ -580,4 +561,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    

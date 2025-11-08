@@ -217,7 +217,7 @@ def lstm_hydrodataset_args(basin_ids, current_project_name):
     return cmd(
         # 1. 项目和基础配置
         sub=project_name,
-        ctx=[1],
+        ctx=[2],
         gage_id=basin_ids,
         # 2. 数据源配置
         source_cfgs={
